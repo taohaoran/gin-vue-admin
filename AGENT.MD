@@ -95,6 +95,7 @@
 - `aiDoc/relations/repo-profile.md`
 - `aiDoc/relations/development-workflow.md`
 - `aiDoc/relations/system-map.md`
+- `aiDoc/relations/docker-deploy-notes.md`
 - `aiDoc/modules/module-index.md`
 - `aiDoc/modules/backend-layer-rules.md`
 - `aiDoc/modules/plugin-development.md`

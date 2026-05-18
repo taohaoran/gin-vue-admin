@@ -1,4 +1,4 @@
-FROM golang:alpine as builder
+FROM golang:alpine AS builder
 
 WORKDIR /go/src/github.com/flipped-aurora/gin-vue-admin/server
 COPY . .
@@ -28,4 +28,5 @@ COPY --from=0 /go/src/github.com/flipped-aurora/gin-vue-admin/server/config.dock
 # VOLUME ["/go/src/github.com/flipped-aurora/gin-vue-admin/server"]
 
 EXPOSE 8888
-ENTRYPOINT ./server -c config.docker.yaml
+# 使用JSON数组格式，避免OS信号处理异常
+ENTRYPOINT ["./server", "-c", "config.docker.yaml"]

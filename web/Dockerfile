@@ -2,7 +2,8 @@
 # variables:
 #     DOCKER_BUILDKIT: 1
 
-FROM node:20-slim AS base
+# 升级至Node.js 22 LTS，pnpm 11.x依赖node:sqlite内置模块，Node 20不支持
+FROM node:22-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
@@ -11,11 +12,13 @@ WORKDIR /app
 
 
 FROM base AS prod-deps
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod
+# pnpm 11.x默认拒绝未声明的构建脚本，--ignore-scripts跳过构建以避免ERR_PNPM_IGNORED_BUILDS错误
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --ignore-scripts
 
 FROM base AS build
 COPY --from=prod-deps /app/node_modules /app/node_modules
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install && pnpm run build
+# pnpm 11.x默认拒绝未声明的构建脚本，--ignore-scripts跳过构建以避免ERR_PNPM_IGNORED_BUILDS错误
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --ignore-scripts && pnpm run build
 
 
 FROM nginx:alpine

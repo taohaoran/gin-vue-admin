@@ -1,0 +1,8 @@
+#!/bin/bash
+# Docker Compose 代理包装脚本
+# 解决 BuildKit 不走 Docker Desktop 内部代理的问题
+# 用法: ./dc up -d / ./dc build / ./dc ps 等
+set -a
+source "$(dirname "$0")/.env.proxy" 2>/dev/null
+set +a
+docker compose "$@"

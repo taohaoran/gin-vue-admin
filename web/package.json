@@ -2,6 +2,9 @@
   "name": "gin-vue-admin",
   "version": "2.9.2",
   "private": true,
+  "pnpm": {
+    "onlyBuiltDependencies": []
+  },
   "scripts": {
     "dev": "node openDocument.js && vite --host --mode development",
     "serve": "node openDocument.js && vite --host --mode development",
