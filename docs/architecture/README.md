@@ -83,3 +83,7 @@
 - **外部组件标注**：MySQL/PostgreSQL/Redis/MongoDB、Casbin、golang-jwt、base64Captcha、robfig/cron、gopsutil、mark3labs/mcp-go、七云对象存储 SDK、@Variant Form 等第三方组件均已标注"不在本仓库源码内"。
 - **命名规范**：全部文件名与目录名使用英文短横线（-），无中文短横线。
 - **覆盖缺口**：auth 的菜单/按钮/API 元数据 Service 未逐方法展开；storage 七家云厂商 SDK 具体调用未逐行展开（统一抽象为驱动层）；mcp 12 个工具入参 schema 未逐个展开；codegen 的 auto_code_plugin 与 ai_workflow_markdown 内部细节仅点到。以上缺口不影响主架构结论。
+
+---
+
+**在线访问**：本文档已部署至 GitHub Pages → <https://taohaoran.github.io/gin-vue-admin/>（入口页 index.html，MD 文档在部署时自动渲染为美观 HTML）。
