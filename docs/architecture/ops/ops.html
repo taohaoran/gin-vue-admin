@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>gin-vue-admin 定时任务与运行运维（ops）子系统 · gin-vue-admin 架构文档</title>
+<style>
+  :root {
+    --bg: #f5f7fa; --card: #ffffff; --ink: #1c2733; --ink-2: #5a6b7c;
+    --line: #e3e8ee; --accent: #1f5f8b; --accent-soft: #e8f1f8;
+    --code-bg: #f0f3f6; --quote: #eef4f9; --code-ink: #0f1a24;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 32px 24px 64px; }
+  nav.topnav {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
+    font-size: 13px; color: var(--ink-2);
+  }
+  nav.topnav a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  nav.topnav a:hover { text-decoration: underline; }
+  nav.topnav .crumb {
+    background: var(--card); border: 1px solid var(--line); border-radius: 999px;
+    padding: 3px 12px; font-size: 12px; font-weight: 600; color: var(--ink-2);
+  }
+  article.doc {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 36px 44px;
+  }
+  article.doc h1 { font-size: 27px; line-height: 1.4; letter-spacing: -0.01em; padding-bottom: 14px; border-bottom: 1px solid var(--line); margin-bottom: 26px; }
+  article.doc h2 { font-size: 20px; margin: 36px 0 14px; padding-bottom: 8px; border-bottom: 1px solid #eef1f5; }
+  article.doc h3 { font-size: 16.5px; margin: 26px 0 10px; }
+  article.doc h4 { font-size: 15px; margin: 20px 0 8px; }
+  article.doc p { margin: 12px 0; }
+  article.doc ul, article.doc ol { margin: 12px 0; padding-left: 26px; }
+  article.doc li { margin: 5px 0; }
+  article.doc a { color: var(--accent); text-decoration: none; }
+  article.doc a:hover { text-decoration: underline; }
+  article.doc table { border-collapse: collapse; width: 100%; margin: 18px 0; font-size: 14px; display: block; overflow-x: auto; }
+  article.doc th { background: #f0f4f8; text-align: left; padding: 9px 13px; border: 1px solid var(--line); font-weight: 600; white-space: nowrap; }
+  article.doc td { padding: 9px 13px; border: 1px solid var(--line); vertical-align: top; }
+  article.doc tr:nth-child(even) td { background: #fafbfc; }
+  article.doc code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+  article.doc pre { background: var(--code-ink); color: #e6edf3; padding: 16px 18px; border-radius: 8px; overflow-x: auto; margin: 16px 0; line-height: 1.6; }
+  article.doc pre code { background: none; color: inherit; padding: 0; }
+  article.doc blockquote { border-left: 4px solid #b9cddd; background: var(--quote); margin: 16px 0; padding: 10px 16px; color: var(--ink-2); border-radius: 0 8px 8px 0; }
+  article.doc blockquote p { margin: 4px 0; }
+  article.doc img { max-width: 100%; border-radius: 8px; border: 1px solid var(--line); }
+  article.doc hr { border: none; border-top: 1px solid var(--line); margin: 28px 0; }
+  a.diagram-link {
+    display: inline-block; margin: 4px 0;
+    background: var(--accent-soft); border: 1px solid #cfe0ee; color: var(--accent);
+    border-radius: 8px; padding: 7px 16px; font-size: 13.5px; font-weight: 600;
+    text-decoration: none !important; transition: background 0.15s, border-color 0.15s;
+  }
+  a.diagram-link:hover { background: #dbeaf5; border-color: var(--accent); }
+  a.diagram-link::before { content: "打开交互式图："; font-weight: 400; }
+  footer.doc-foot { margin-top: 24px; font-size: 12.5px; color: var(--ink-2); text-align: center; }
+  @media (max-width: 640px) {
+    .wrap { padding: 20px 12px 40px; }
+    article.doc { padding: 24px 18px; }
+    article.doc h1 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="topnav">
+    <a href="../index.html">← gin-vue-admin 架构文档</a>
+    <span class="crumb">运维</span>
+  </nav>
+  <article class="doc">
+<h1 id="gin-vue-admin-ops">gin-vue-admin 定时任务与运行运维（ops）子系统</h1>
+<blockquote>
+<p>本文档基于 gin-vue-admin v2.9.2 源码（后端模块 <code>github.com/flipped-aurora/gin-vue-admin/server</code>）分析，覆盖后台定时任务调度与运行时 HTTP 中间件（panic 恢复、请求日志、IP 限流、超时控制、健康检查）的核心能力与边界。本子系统聚焦"平台自身的运行时保障"，不重复 admin 单元的系统信息采集页面。</p>
+</blockquote>
+<h2 id="1">1. 概述</h2>
+<p>ops 子系统由两部分组成：</p>
+<ol>
+<li><strong>后台定时任务调度</strong>：基于 <code>robfig/cron/v3</code> 的可扩展定时器 <code>GVA_Timer</code>（<code>server/utils/timer/timed_task.go</code>），在服务启动时由 <code>initialize.Timer()</code> 注册任务。当前内置任务为每日清理操作日志与 JWT 黑名单表。</li>
+<li><strong>运行时中间件链</strong>：在 Gin 引擎与路由组上挂载的横切关注点——panic 恢复（GinRecovery）、请求日志（Logger）、IP 限流（DefaultLimit）、超时控制（TimeoutMiddleware），以及 <code>PublicGroup</code> 上的 <code>/health</code> 健康检查端点。</li>
+</ol>
+<p>这些组件不承载业务逻辑，而是保证服务在异常流量、慢查询、panic、磁盘/表膨胀等情况下的可用性与可观测性。</p>
+<p>核心代码路径：</p>
+<ul>
+<li>定时任务：<code>server/task/clearTable.go</code>、<code>server/utils/timer/timed_task.go</code>、<code>server/initialize/timer.go</code></li>
+<li>全局定时器实例：<code>server/global/global.go</code>（<code>GVA_Timer timer.Timer = timer.NewTimerTask()</code>）</li>
+<li>中间件：<code>server/middleware/logger.go</code>、<code>server/middleware/timeout.go</code>、<code>server/middleware/limit_ip.go</code>、<code>server/middleware/error.go</code>（GinRecovery）</li>
+<li>健康检查：<code>server/initialize/router.go</code>（<code>PublicGroup.GET("/health", ...)</code>）</li>
+<li>启动入口：<code>server/main.go</code>（调用 <code>initialize.Timer()</code>）、<code>server/initialize/reload.go</code>（热重载时重启定时器）</li>
+<li>时长解析工具：<code>server/utils/human_duration.go</code>（<code>ParseDuration</code>，支持带 <code>d</code> 的天数后缀）</li>
+</ul>
+<h2 id="2">2. 功能清单</h2>
+<table>
+<thead>
+<tr>
+<th>功能</th>
+<th>说明</th>
+<th>源码路径</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>通用定时任务框架</td>
+<td>封装 robfig/cron，支持按 cronName 分组、按函数/Job 接口添加任务、启停、删除、列出</td>
+<td><code>server/utils/timer/timed_task.go</code></td>
+</tr>
+<tr>
+<td>全局定时器实例</td>
+<td>进程级单例 <code>GVA_Timer</code>，供 initialize 与插件注册任务</td>
+<td><code>server/global/global.go</code></td>
+</tr>
+<tr>
+<td>启动时注册任务</td>
+<td><code>main.go</code> 调用 <code>initialize.Timer()</code>，后台 goroutine 中注册每日清理任务</td>
+<td><code>server/initialize/timer.go</code>、<code>server/main.go</code></td>
+</tr>
+<tr>
+<td>定时清理数据库</td>
+<td><code>@daily</code> 执行 <code>ClearTable</code>：清理 <code>sys_operation_records</code>（90 天）与 <code>jwt_blacklists</code>（7 天）</td>
+<td><code>server/task/clearTable.go</code></td>
+</tr>
+<tr>
+<td>热重载支持</td>
+<td><code>initialize/reload.go</code> 中再次调用 <code>Timer()</code>，保证配置热重载后任务仍在</td>
+<td><code>server/initialize/reload.go</code></td>
+</tr>
+<tr>
+<td>panic 恢复中间件</td>
+<td>捕获 handler panic，记录并入库，避免进程崩溃</td>
+<td><code>server/middleware/error.go</code>（GinRecovery，在 <code>initialize/router.go</code> 挂载）</td>
+</tr>
+<tr>
+<td>请求日志中间件</td>
+<td>记录路径、Query、Body、IP、UserAgent、耗时、错误；可插拔 Filter/Print/脱敏钩子</td>
+<td><code>server/middleware/logger.go</code></td>
+</tr>
+<tr>
+<td>IP 限流中间件</td>
+<td>基于 Redis 计数器，按 <code>LimitTimeIP</code>/<code>LimitCountIP</code> 配置限制单位时间内同 IP 请求数</td>
+<td><code>server/middleware/limit_ip.go</code></td>
+</tr>
+<tr>
+<td>请求超时中间件</td>
+<td>基于 <code>context.WithTimeout</code>，超时返回 504 并关闭连接；带 panicChan 透传 panic</td>
+<td><code>server/middleware/timeout.go</code></td>
+</tr>
+<tr>
+<td>健康检查端点</td>
+<td><code>GET /health</code> 返回 <code>ok</code>，供负载均衡/容器探针使用，挂在免鉴权 PublicGroup</td>
+<td><code>server/initialize/router.go</code></td>
+</tr>
+<tr>
+<td>时长解析工具</td>
+<td>扩展 <code>time.ParseDuration</code> 支持 <code>d</code>（天）后缀与纯数字秒数，供 JWT 过期/缓冲时间等配置使用</td>
+<td><code>server/utils/human_duration.go</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="3">3. 解决的问题</h2>
+<table>
+<thead>
+<tr>
+<th>用户痛点</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>操作日志、JWT 黑名单表随时间无限膨胀</td>
+<td>每日定时任务按 <code>created_at</code> 阈值 DELETE，无需人工清理</td>
+</tr>
+<tr>
+<td>单个慢请求/下游卡死拖垮整个 worker</td>
+<td><code>TimeoutMiddleware</code> 用带缓冲 channel 隔离 handler goroutine，超时即返回 504</td>
+</tr>
+<tr>
+<td>恶意 IP 高频刷接口</td>
+<td>Redis 计数器限流：周期内超过 <code>LimitCountIP</code> 直接拒绝，返回剩余等待时间</td>
+</tr>
+<tr>
+<td>handler panic 导致连接挂起或进程退出</td>
+<td>GinRecovery 统一 recover，记录错误并按状态码响应</td>
+</tr>
+<tr>
+<td>线上问题无法还原现场</td>
+<td>Logger 中间件记录路径/Query/Body/IP/UA/耗时，JSON 输出到 stdout 供 K8s 采集</td>
+</tr>
+<tr>
+<td>多任务需要统一管理与启停</td>
+<td><code>Timer</code> 接口按 cronName 分组封装，支持 Add/Remove/Start/Stop/Close</td>
+</tr>
+<tr>
+<td>配置里写 <code>7d</code> 这类时长 Go 原生不解析</td>
+<td><code>ParseDuration</code> 扩展支持 <code>d</code> 后缀与纯数字秒数</td>
+</tr>
+<tr>
+<td>容器/网关需要存活探针</td>
+<td><code>/health</code> 免鉴权返回 200 ok</td>
+</tr>
+</tbody>
+</table>
+<h2 id="4">4. 系统边界</h2>
+<p><strong>In-Scope（本仓库实现）</strong></p>
+<ul>
+<li>定时任务框架（对 robfig/cron 的薄封装）与内置 ClearDB 任务</li>
+<li>panic 恢复、请求日志、IP 限流、超时控制四个 Gin 中间件的实现与可配置项</li>
+<li><code>/health</code> 端点</li>
+<li>时长解析工具</li>
+</ul>
+<p><strong>Out-of-Scope（外部系统 / 第三方组件，不在本仓库源码内）</strong></p>
+<ul>
+<li>robfig/cron/v3：定时调度内核，第三方组件</li>
+<li>Redis：IP 限流计数器存储（<code>global.GVA_REDIS</code>），外部系统</li>
+<li>GORM 连接的业务数据库：定时清理的目标表，外部系统</li>
+<li>请求日志的采集与存储：Logger 仅输出到 stdout/JSON，实际采集（Filebeat/Loki/ELK）由部署侧完成，不在本仓库源码内</li>
+<li>系统信息采集（CPU/内存/磁盘）：见 <code>server/utils/server.go</code>（gopsutil），本单元不展开，归 admin 子系统</li>
+<li>进程管理/进程守护（systemd、supervisor、容器编排）：外部运维环境，不在本仓库源码内</li>
+</ul>
+<h2 id="5">5. 架构图</h2>
+<p><a class="diagram-link" href="ops-architecture.html" target="_blank" rel="noopener">ops 子系统架构图</a></p>
+<p>上图分为两个区域：</p>
+<ul>
+<li><strong>运行时中间件链</strong>（上方横向流水线）：请求来源依次经过 GinRecovery（panic 恢复）、请求日志、IP 限流、超时控制后到达业务 Handler；限流中间件通过虚线访问 Redis 做计数。</li>
+<li><strong>后台定时任务</strong>（下方）：GVA_Timer（robfig/cron）按 <code>@daily</code> 触发 ClearTable 任务，由任务执行 DELETE 语句清理业务数据库中的过期记录。</li>
+</ul>
+<h2 id="6">6. 时序图 / 数据流图</h2>
+<p>本子系统不单独绘制时序图，理由如下：</p>
+<ul>
+<li>中间件链是单向线性管道，其调用顺序与分支（限流拒绝、超时 504、panic 恢复）已在架构图中以流水线形式表达，再画时序图不增加新信息。</li>
+<li>定时清理任务是"调度器 → 任务函数 → DB"的单跳触发，无跨服务异步交互或多阶段数据管道，不构成有价值的 sequence/dataflow 图。</li>
+</ul>
+<p>如需排查具体一次请求经过中间件的行为，可结合 <code>server/middleware/</code> 下各 <code>Next()</code> 调用顺序与 <code>server/initialize/router.go</code> 的中间件挂载点阅读源码。</p>
+  </article>
+  <footer class="doc-foot">gin-vue-admin 架构文档 · 渲染文档</footer>
+</div>
+</body>
+</html>

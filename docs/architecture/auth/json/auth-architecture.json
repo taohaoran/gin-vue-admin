@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "gin-vue-admin 认证与授权子系统架构",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "viewBox": [1200, 720],
+    "views": [
+      { "id": "main", "label": "主鉴权链路", "focus": ["user", "jwt-mw", "casbin-mw", "api-layer"], "note": "请求经过 JWT 解析与 Casbin 鉴权后到达业务层" }
+    ]
+  },
+  "components": [
+    { "id": "user", "type": "external", "label": "前端浏览器", "sublabel": "Vue3", "pos": [40, 240], "size": [130, 70] },
+    { "id": "jwt-mw", "type": "security", "label": "JWT 鉴权中间件", "sublabel": "middleware/jwt.go", "pos": [230, 240], "size": [160, 70], "tag": "认证" },
+    { "id": "casbin-mw", "type": "security", "label": "Casbin 鉴权中间件", "sublabel": "casbin_rbac.go", "pos": [450, 240], "size": [160, 70], "tag": "授权" },
+    { "id": "api-layer", "type": "backend", "label": "API / Service 层", "sublabel": "system 域业务", "pos": [670, 240], "size": [170, 70], "tag": "业务" },
+    { "id": "blackcache", "type": "backend", "label": "JWT 黑名单", "sublabel": "本地缓存", "pos": [230, 480], "size": [160, 60] },
+    { "id": "casbin-ef", "type": "backend", "label": "Casbin Enforcer", "sublabel": "utils/casbin_util.go", "pos": [450, 480], "size": [160, 60] },
+    { "id": "db", "type": "database", "label": "业务数据库", "sublabel": "GORM", "pos": [670, 480], "size": [150, 60] },
+    { "id": "redis", "type": "database", "label": "Redis", "sublabel": "单点登录", "pos": [920, 240], "size": [150, 60] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Gin 私有路由组 PrivateGroup", "wraps": ["jwt-mw", "casbin-mw", "api-layer"] },
+    { "kind": "security-group", "label": "鉴权组件", "wraps": ["jwt-mw", "casbin-mw", "casbin-ef", "blackcache"] }
+  ],
+  "connections": [
+    { "id": "u-jwt", "from": "user", "to": "jwt-mw", "label": "x-token", "variant": "emphasis" },
+    { "id": "jwt-casbin", "from": "jwt-mw", "to": "casbin-mw", "label": "claims 透传", "variant": "emphasis" },
+    { "id": "casbin-api", "from": "casbin-mw", "to": "api-layer", "label": "放行 c.Next()", "variant": "emphasis", "labelDy": 60 },
+    { "id": "jwt-black", "from": "jwt-mw", "to": "blackcache", "label": "黑名单查询", "fromSide": "bottom", "toSide": "top", "labelDy": 20 },
+    { "id": "casbin-ef", "from": "casbin-mw", "to": "casbin-ef", "label": "Enforce", "fromSide": "bottom", "toSide": "top", "labelDy": 20 },
+    { "id": "ef-db", "from": "casbin-ef", "to": "db", "label": "策略表", "variant": "dashed" },
+    { "id": "api-db", "from": "api-layer", "to": "db", "label": "GORM 读写", "fromSide": "bottom", "toSide": "top" },
+    { "id": "api-redis", "from": "api-layer", "to": "redis", "label": "单点登录", "variant": "dashed", "fromSide": "right", "toSide": "left" }
+  ],
+  "cards": [
+    { "dot": "emerald", "title": "主路径", "items": ["前端携带 x-token", "JWTAuth 解析并校验黑名单", "CasbinHandler 按角色鉴权", "放行后进入业务 API"] },
+    { "dot": "cyan", "title": "关键机制", "items": ["Token 缓冲期自动刷新（new-token 响应头）", "UseMultipoint 开启时单点登录", "gorm-adapter 持久化 RBAC 策略"] }
+  ]
+}

@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "操作日志记录时序图",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "viewBox": [1200, 820],
+    "column_fit": "spread"
+  },
+  "participants": [
+    {
+      "id": "client",
+      "type": "external",
+      "label": "前端客户端",
+      "sublabel": "浏览器"
+    },
+    {
+      "id": "op-middleware",
+      "type": "backend",
+      "label": "操作日志中间件",
+      "sublabel": "OperationRecord"
+    },
+    {
+      "id": "business",
+      "type": "backend",
+      "label": "业务 Handler",
+      "sublabel": "API/Service"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "数据库",
+      "sublabel": "GORM"
+    }
+  ],
+  "segments": [
+    { "from": 160, "to": 300, "label": "请求拦截与记录构造" },
+    { "from": 300, "to": 560, "label": "业务处理" },
+    { "from": 560, "to": 720, "label": "记录落库与响应" }
+  ],
+  "messages": [
+    {
+      "id": "m1",
+      "from": "client",
+      "to": "op-middleware",
+      "y": 180,
+      "label": "POST/PUT/DELETE 请求",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m5",
+      "from": "op-middleware",
+      "to": "business",
+      "y": 280,
+      "label": "c.Next() 放行",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m6",
+      "from": "business",
+      "to": "db",
+      "y": 340,
+      "label": "业务数据库操作",
+      "variant": "default"
+    },
+    {
+      "id": "m7",
+      "from": "db",
+      "to": "business",
+      "y": 400,
+      "label": "查询/写入结果",
+      "variant": "return"
+    },
+    {
+      "id": "m8",
+      "from": "business",
+      "to": "op-middleware",
+      "y": 460,
+      "label": "业务处理完成，写入 Response",
+      "variant": "return"
+    },
+    {
+      "id": "m10",
+      "from": "op-middleware",
+      "to": "db",
+      "y": 590,
+      "label": "GVA_DB.Create(&record) 落库",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m11",
+      "from": "db",
+      "to": "op-middleware",
+      "y": 640,
+      "label": "落库结果",
+      "variant": "return"
+    },
+    {
+      "id": "m12",
+      "from": "op-middleware",
+      "to": "client",
+      "y": 690,
+      "label": "HTTP 响应",
+      "variant": "return"
+    }
+  ],
+  "activations": [
+    { "participant": "op-middleware", "from": 180, "to": 680, "type": "backend" },
+    { "participant": "business", "from": 280, "to": 460, "type": "backend" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "中间件内部步骤",
+      "items": [
+        "读取并缓存 Request.Body（GET 解析 query）",
+        "构造 SysOperationRecord（IP/方法/路径/用户ID）",
+        "包装 ResponseWriter 捕获响应，记录起始时间",
+        "返回后计算延迟、捕获 Status/Error/Resp"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "注意事项",
+      "items": [
+        "GET 请求不挂载此中间件",
+        "multipart/form-data 的 Body 记为 [文件]",
+        "Body 超过 1024 字节截断",
+        "下载类响应不记录 Response Body"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,225 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "gin-vue-admin 示例业务子系统架构",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "viewBox": [1400, 800],
+    "views": [
+      {
+        "id": "main",
+        "label": "客户管理 CRUD 链路",
+        "focus": ["fe-pages", "router", "api", "service", "model", "db"],
+        "note": "前端页面 → 路由 → API → Service → Model → 数据库"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "fe-pages",
+      "type": "frontend",
+      "label": "示例前端页面",
+      "sublabel": "view/example/",
+      "pos": [40, 360],
+      "size": [150, 80],
+      "tag": "客户/上传/断点续传"
+    },
+    {
+      "id": "fe-api",
+      "type": "frontend",
+      "label": "前端 API 封装",
+      "sublabel": "web/src/api/",
+      "pos": [40, 200],
+      "size": [150, 60]
+    },
+    {
+      "id": "form-create",
+      "type": "external",
+      "label": "@form-create 设计器",
+      "sublabel": "systemTools/formCreate",
+      "pos": [40, 560],
+      "size": [160, 60]
+    },
+    {
+      "id": "router",
+      "type": "backend",
+      "label": "Gin 路由层",
+      "sublabel": "router/example",
+      "pos": [280, 360],
+      "size": [130, 80]
+    },
+    {
+      "id": "jwt",
+      "type": "security",
+      "label": "JWT 鉴权",
+      "sublabel": "middleware/jwt.go",
+      "pos": [280, 200],
+      "size": [130, 55]
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "Example API",
+      "sublabel": "api/v1/example",
+      "pos": [500, 360],
+      "size": [130, 80],
+      "tag": "参数绑定与校验"
+    },
+    {
+      "id": "service",
+      "type": "backend",
+      "label": "Example Service",
+      "sublabel": "service/example",
+      "pos": [720, 360],
+      "size": [130, 80],
+      "tag": "CRUD + 数据权限"
+    },
+    {
+      "id": "auth-service",
+      "type": "backend",
+      "label": "Authority Service",
+      "sublabel": "service/system (数据权限)",
+      "pos": [720, 180],
+      "size": [150, 55]
+    },
+    {
+      "id": "model",
+      "type": "backend",
+      "label": "Example Model",
+      "sublabel": "model/example",
+      "pos": [940, 360],
+      "size": [130, 80]
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "数据库",
+      "sublabel": "GORM",
+      "pos": [1160, 360],
+      "size": [130, 80]
+    },
+    {
+      "id": "storage",
+      "type": "cloud",
+      "label": "对象存储",
+      "sublabel": "七牛/阿里云/S3 等",
+      "pos": [1160, 180],
+      "size": [140, 55]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "前端（web/src）",
+      "wraps": ["fe-pages", "fe-api", "form-create"]
+    },
+    {
+      "kind": "region",
+      "label": "后端分层",
+      "wraps": ["router", "api", "service", "model"]
+    }
+  ],
+  "connections": [
+    {
+      "id": "fe-pages-fe-api",
+      "from": "fe-pages",
+      "to": "fe-api",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "label": "调用",
+      "variant": "default"
+    },
+    {
+      "id": "fe-api-router",
+      "from": "fe-api",
+      "to": "router",
+      "label": "HTTP 请求",
+      "variant": "emphasis"
+    },
+    {
+      "id": "router-jwt",
+      "from": "router",
+      "to": "jwt",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "label": "鉴权",
+      "variant": "security"
+    },
+    {
+      "id": "router-api",
+      "from": "router",
+      "to": "api",
+      "label": "分发",
+      "variant": "emphasis"
+    },
+    {
+      "id": "api-service",
+      "from": "api",
+      "to": "service",
+      "label": "调用",
+      "variant": "emphasis"
+    },
+    {
+      "id": "service-auth",
+      "from": "service",
+      "to": "auth-service",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "label": "查询数据权限",
+      "variant": "dashed"
+    },
+    {
+      "id": "service-model",
+      "from": "service",
+      "to": "model",
+      "label": "ORM",
+      "variant": "default"
+    },
+    {
+      "id": "model-db",
+      "from": "model",
+      "to": "db",
+      "label": "SQL",
+      "variant": "emphasis"
+    },
+    {
+      "id": "fe-pages-formcreate",
+      "from": "fe-pages",
+      "to": "form-create",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "表单设计器",
+      "variant": "dashed"
+    },
+    {
+      "id": "db-storage",
+      "from": "db",
+      "to": "storage",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "label": "文件上传/下载",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "核心示例",
+      "items": [
+        "exa_customer 完整 CRUD 链路",
+        "数据权限过滤（按角色可见范围）",
+        "写操作挂载 OperationRecord"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "演示能力",
+      "items": [
+        "文件上传/断点续传前端",
+        "@form-create 拖拽表单设计",
+        "附件分类管理"
+      ]
+    }
+  ]
+}

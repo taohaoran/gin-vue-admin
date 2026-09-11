@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>gin-vue-admin 示例业务（example）子系统 · gin-vue-admin 架构文档</title>
+<style>
+  :root {
+    --bg: #f5f7fa; --card: #ffffff; --ink: #1c2733; --ink-2: #5a6b7c;
+    --line: #e3e8ee; --accent: #1f5f8b; --accent-soft: #e8f1f8;
+    --code-bg: #f0f3f6; --quote: #eef4f9; --code-ink: #0f1a24;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 32px 24px 64px; }
+  nav.topnav {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
+    font-size: 13px; color: var(--ink-2);
+  }
+  nav.topnav a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  nav.topnav a:hover { text-decoration: underline; }
+  nav.topnav .crumb {
+    background: var(--card); border: 1px solid var(--line); border-radius: 999px;
+    padding: 3px 12px; font-size: 12px; font-weight: 600; color: var(--ink-2);
+  }
+  article.doc {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 36px 44px;
+  }
+  article.doc h1 { font-size: 27px; line-height: 1.4; letter-spacing: -0.01em; padding-bottom: 14px; border-bottom: 1px solid var(--line); margin-bottom: 26px; }
+  article.doc h2 { font-size: 20px; margin: 36px 0 14px; padding-bottom: 8px; border-bottom: 1px solid #eef1f5; }
+  article.doc h3 { font-size: 16.5px; margin: 26px 0 10px; }
+  article.doc h4 { font-size: 15px; margin: 20px 0 8px; }
+  article.doc p { margin: 12px 0; }
+  article.doc ul, article.doc ol { margin: 12px 0; padding-left: 26px; }
+  article.doc li { margin: 5px 0; }
+  article.doc a { color: var(--accent); text-decoration: none; }
+  article.doc a:hover { text-decoration: underline; }
+  article.doc table { border-collapse: collapse; width: 100%; margin: 18px 0; font-size: 14px; display: block; overflow-x: auto; }
+  article.doc th { background: #f0f4f8; text-align: left; padding: 9px 13px; border: 1px solid var(--line); font-weight: 600; white-space: nowrap; }
+  article.doc td { padding: 9px 13px; border: 1px solid var(--line); vertical-align: top; }
+  article.doc tr:nth-child(even) td { background: #fafbfc; }
+  article.doc code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+  article.doc pre { background: var(--code-ink); color: #e6edf3; padding: 16px 18px; border-radius: 8px; overflow-x: auto; margin: 16px 0; line-height: 1.6; }
+  article.doc pre code { background: none; color: inherit; padding: 0; }
+  article.doc blockquote { border-left: 4px solid #b9cddd; background: var(--quote); margin: 16px 0; padding: 10px 16px; color: var(--ink-2); border-radius: 0 8px 8px 0; }
+  article.doc blockquote p { margin: 4px 0; }
+  article.doc img { max-width: 100%; border-radius: 8px; border: 1px solid var(--line); }
+  article.doc hr { border: none; border-top: 1px solid var(--line); margin: 28px 0; }
+  a.diagram-link {
+    display: inline-block; margin: 4px 0;
+    background: var(--accent-soft); border: 1px solid #cfe0ee; color: var(--accent);
+    border-radius: 8px; padding: 7px 16px; font-size: 13.5px; font-weight: 600;
+    text-decoration: none !important; transition: background 0.15s, border-color 0.15s;
+  }
+  a.diagram-link:hover { background: #dbeaf5; border-color: var(--accent); }
+  a.diagram-link::before { content: "打开交互式图："; font-weight: 400; }
+  footer.doc-foot { margin-top: 24px; font-size: 12.5px; color: var(--ink-2); text-align: center; }
+  @media (max-width: 640px) {
+    .wrap { padding: 20px 12px 40px; }
+    article.doc { padding: 24px 18px; }
+    article.doc h1 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="topnav">
+    <a href="../index.html">← gin-vue-admin 架构文档</a>
+    <span class="crumb">示例业务</span>
+  </nav>
+  <article class="doc">
+<h1 id="gin-vue-admin-example">gin-vue-admin 示例业务（example）子系统</h1>
+<blockquote>
+<p>本文档基于 gin-vue-admin v2.9.2 源码分析，覆盖示例业务模块的核心能力与边界。</p>
+</blockquote>
+<h2 id="1">1. 概述</h2>
+<p>示例业务（example）子系统是 gin-vue-admin 内置的演示模块，位于后端 <code>server/</code> 下 <code>example</code> 域与前端 <code>web/src/view/example/</code> 下，用于展示如何基于 GVA 的分层架构（Router → API → Service → Model）开发一个完整的业务 CRUD 模块，同时演示文件上传下载、附件分类、断点续传等能力的前端集成方式，以及 @form-create 表单设计器的集成用法。</p>
+<p>本单元聚焦：</p>
+<ul>
+<li><strong>后端完整链路</strong>：客户管理（exa_customer）的 Router → API → Service → Model → GORM 全链路，含数据权限过滤</li>
+<li><strong>前端示例页</strong>：客户管理页面、上传页面、断点续传页面</li>
+<li><strong>前端 API 封装</strong>：customer、attachmentCategory、breakpoint、fileUploadAndDownload 等请求模块</li>
+<li><strong>@form-create 集成</strong>：表单设计器的引入与 Vue 模板导出</li>
+</ul>
+<p>文件上传下载、附件分类、断点续传的后端核心逻辑由 storage 单元负责，本单元仅描述前端集成方式与路由挂载点。</p>
+<p>核心代码路径：</p>
+<ul>
+<li>后端路由：<code>server/router/example/</code>（<code>enter.go</code> 组合各子路由）</li>
+<li>后端 API：<code>server/api/v1/example/</code>（<code>enter.go</code> 组合各 API）</li>
+<li>后端 Service：<code>server/service/example/</code>（<code>enter.go</code> 组合各 Service）</li>
+<li>后端 Model：<code>server/model/example/</code>（含 <code>request/</code>、<code>response/</code> 子目录）</li>
+<li>前端页面：<code>web/src/view/example/</code></li>
+<li>前端 API：<code>web/src/api/customer.js</code>、<code>web/src/api/attachmentCategory.js</code>、<code>web/src/api/breakpoint.js</code>、<code>web/src/api/fileUploadAndDownload.js</code></li>
+<li>表单设计器：<code>web/src/view/systemTools/formCreate/index.vue</code></li>
+</ul>
+<h2 id="2">2. 功能清单</h2>
+<table>
+<thead>
+<tr>
+<th>功能</th>
+<th>说明</th>
+<th>源码路径</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>客户创建</td>
+<td>绑定 JSON 请求体，校验客户名/手机号，自动注入当前登录用户 ID 与角色 ID</td>
+<td><code>server/api/v1/example/exa_customer.go</code>、<code>server/service/example/exa_customer.go</code>、<code>server/model/example/exa_customer.go</code></td>
+</tr>
+<tr>
+<td>客户更新</td>
+<td>校验客户 ID，全字段 Save 更新</td>
+<td><code>server/api/v1/example/exa_customer.go</code>、<code>server/service/example/exa_customer.go</code></td>
+</tr>
+<tr>
+<td>客户删除</td>
+<td>按 ID 删除客户记录</td>
+<td><code>server/api/v1/example/exa_customer.go</code>、<code>server/service/example/exa_customer.go</code></td>
+</tr>
+<tr>
+<td>客户详情查询</td>
+<td>按 ID 获取单个客户，关联返回管理用户信息</td>
+<td><code>server/api/v1/example/exa_customer.go</code>、<code>server/service/example/exa_customer.go</code></td>
+</tr>
+<tr>
+<td>客户分页列表（数据权限）</td>
+<td>根据当前用户角色的数据权限范围，过滤可见客户列表，Preload 关联 SysUser</td>
+<td><code>server/service/example/exa_customer.go</code>、<code>server/api/v1/example/exa_customer.go</code></td>
+</tr>
+<tr>
+<td>客户路由注册</td>
+<td>POST/PUT/DELETE 挂载 OperationRecord 中间件，GET 不记录；路由前缀 <code>/customer</code></td>
+<td><code>server/router/example/exa_customer.go</code></td>
+</tr>
+<tr>
+<td>前端客户管理页面</td>
+<td>Element Plus 表格 + 分页 + 抽屉表单，调用 <code>web/src/api/customer.js</code></td>
+<td><code>web/src/view/example/customer/customer.vue</code>、<code>web/src/api/customer.js</code></td>
+</tr>
+<tr>
+<td>前端上传示例页</td>
+<td>文件上传与扫码上传两个演示页面</td>
+<td><code>web/src/view/example/upload/upload.vue</code>、<code>web/src/view/example/upload/scanUpload.vue</code></td>
+</tr>
+<tr>
+<td>前端断点续传示例页</td>
+<td>分块上传与断点续传前端交互</td>
+<td><code>web/src/view/example/breakpoint/breakpoint.vue</code></td>
+</tr>
+<tr>
+<td>前端附件分类 API</td>
+<td>分类列表查询、添加/编辑、删除</td>
+<td><code>web/src/api/attachmentCategory.js</code></td>
+</tr>
+<tr>
+<td>前端断点续传 API</td>
+<td>文件查找、分块续传、合并完成、分块移除</td>
+<td><code>web/src/api/breakpoint.js</code></td>
+</tr>
+<tr>
+<td>前端文件上传下载 API</td>
+<td>文件分页列表、删除、编辑文件名、上传文件</td>
+<td><code>web/src/api/fileUploadAndDownload.js</code></td>
+</tr>
+<tr>
+<td>@form-create 表单设计器集成</td>
+<td>引入 <code>@form-create/designer</code>，拖拽生成表单规则，支持导出为 Vue 原生模板代码</td>
+<td><code>web/src/view/systemTools/formCreate/index.vue</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="3">3. 解决的问题</h2>
+<table>
+<thead>
+<tr>
+<th>用户痛点</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>新开发者不知道如何基于 GVA 写一个标准业务 CRUD</td>
+<td>exa_customer 提供完整分层示例：路由注册 → API 参数绑定与校验 → Service GORM 操作 → Model 结构体定义</td>
+</tr>
+<tr>
+<td>多角色下数据可见范围隔离</td>
+<td>Service 层查询时调用 <code>AuthorityServiceApp.GetAuthorityInfo</code> 获取数据权限 ID 列表，按 <code>sys_user_authority_id in ?</code> 过滤</td>
+</tr>
+<tr>
+<td>文件上传能力需要演示</td>
+<td>提供上传与断点续传前端示例页，配合 <code>web/src/api/breakpoint.js</code> 分块上传接口</td>
+</tr>
+<tr>
+<td>表单页面开发效率低</td>
+<td>集成 @form-create 设计器，拖拽生成表单规则并可导出为 Vue 模板代码</td>
+</tr>
+<tr>
+<td>附件需要分类管理</td>
+<td>提供附件分类前端 API 封装，支持分类增删查</td>
+</tr>
+</tbody>
+</table>
+<h2 id="4">4. 系统边界</h2>
+<h3 id="in-scope">In-Scope（本仓库实现）</h3>
+<ul>
+<li>客户管理（exa_customer）后端完整链路：路由、API、Service、Model、数据权限过滤</li>
+<li>前端客户管理页面（表格、分页、抽屉表单）</li>
+<li>前端上传/断点续传/客户管理示例页面</li>
+<li>前端 API 封装模块（customer、attachmentCategory、breakpoint、fileUploadAndDownload）</li>
+<li>@form-create 表单设计器集成页（Vue 模板导出逻辑）</li>
+<li>示例模块路由注册与中间件挂载策略（写操作记录操作日志，读操作不记录）</li>
+</ul>
+<h3 id="out-of-scope">Out-of-Scope（外部系统/第三方组件，不在本仓库源码内）</h3>
+<ul>
+<li><strong>数据库</strong>：MySQL / PostgreSQL / SQLServer / SQLite（通过 GORM，数据库服务本身不在本仓库源码内）</li>
+<li><strong>@form-create / FcDesigner</strong>：拖拽式表单设计器组件库（第三方 npm 包，不在本仓库源码内）</li>
+<li><strong>Element Plus</strong>：前端 UI 组件库（第三方 npm 包，不在本仓库源码内）</li>
+<li><strong>七牛云 / 阿里云 / 腾讯云 / 华为 OBS / AWS S3 / MinIO / Cloudflare R2</strong>：对象存储（文件上传下载的后端核心逻辑由 storage 单元负责，云服务本身不在本仓库源码内）</li>
+<li><strong>附件分类后端与断点续传后端</strong>：<code>server/service/example/exa_attachment_category.go</code>、<code>server/service/example/exa_breakpoint_continue.go</code> 的后端核心由 storage 单元负责，本单元仅描述前端集成</li>
+</ul>
+<h2 id="5">5. 架构图</h2>
+<p><a class="diagram-link" href="example-architecture.html" target="_blank" rel="noopener">示例业务子系统架构图</a></p>
+<p>上图展示 example 子系统的前后端分层：前端示例页面（客户管理、上传、断点续传）通过封装的 API 模块发起 HTTP 请求，经 Gin 路由层（JWT 鉴权 + 操作记录中间件）到达 example API 层；API 层绑定参数并校验后调用 Service 层；Service 层通过 GORM 操作数据库，客户列表查询时还会调用 system 域的 AuthorityService 做数据权限过滤。@form-create 设计器作为独立前端页面存在，不与后端 API 直接交互。</p>
+<h2 id="6">6. 时序图</h2>
+<p><a class="diagram-link" href="example-sequence.html" target="_blank" rel="noopener">exa_customer CRUD 时序图</a></p>
+<p>上图展示客户列表查询的完整调用链：前端页面发起分页请求 → 前端 API 封装 → Gin 路由（GET 不经过 OperationRecord 中间件）→ API 层绑定 PageInfo → Service 层先调用 AuthorityService 获取当前角色数据权限 → GORM 按权限范围分页查询客户并 Preload 关联用户 → 统一分页响应返回前端。</p>
+  </article>
+  <footer class="doc-foot">gin-vue-admin 架构文档 · 渲染文档</footer>
+</div>
+</body>
+</html>

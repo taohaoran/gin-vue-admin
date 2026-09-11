@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "gin-vue-admin 代码生成器与 AI 工作流架构",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "viewBox": [1280, 760],
+    "views": [
+      { "id": "main", "label": "主路径", "focus": ["svc-package", "tool-ast"], "note": "代码生成主链路：模板渲染 + AST 注入" }
+    ]
+  },
+  "components": [
+    { "id": "user-frontend", "type": "frontend", "label": "前端管理台", "sublabel": "Vue3 / 代码生成页 / AI工作流", "pos": [30, 350], "size": [150, 70] },
+    { "id": "api-autocode", "type": "backend", "label": "AutoCodeApi", "sublabel": "元数据/LLM/SSE 代理", "pos": [250, 200], "size": [150, 60], "tag": "鉴权组" },
+    { "id": "api-ai-session", "type": "backend", "label": "AIWorkflowSessionApi", "sublabel": "会话 CRUD / Markdown", "pos": [250, 470], "size": [170, 60] },
+    { "id": "svc-package", "type": "backend", "label": "代码生成管线", "sublabel": "autoCodePackage.Create/templates", "pos": [500, 100], "size": [180, 70], "tag": "核心" },
+    { "id": "svc-database", "type": "backend", "label": "Database 多方言接口", "sublabel": "mysql/pgsql/mssql/oracle/sqlite", "pos": [500, 240], "size": [180, 60] },
+    { "id": "svc-llm", "type": "backend", "label": "LLM / SSE 代理", "sublabel": "autoCodeLlm", "pos": [500, 380], "size": [160, 60] },
+    { "id": "svc-session", "type": "backend", "label": "AI 会话持久化", "sublabel": "aiWorkflowSession", "pos": [500, 520], "size": [160, 60] },
+    { "id": "tool-ast", "type": "backend", "label": "AST 注入器 + 模板函数", "sublabel": "utils/ast · utils/autocode", "pos": [780, 100], "size": [180, 70] },
+    { "id": "ext-src", "type": "external", "label": "模板仓库 / 源码树", "sublabel": "server/resource · server/{api,router,service,model}", "pos": [780, 230], "size": [200, 60] },
+    { "id": "db-business", "type": "database", "label": "业务数据库", "sublabel": "GORM 读元数据(外部)", "pos": [780, 360], "size": [170, 60] },
+    { "id": "db-meta", "type": "database", "label": "GORM 元数据库", "sublabel": "包/历史/会话记录", "pos": [780, 490], "size": [170, 60] },
+    { "id": "ext-llm", "type": "cloud", "label": "上游大模型 / Dify", "sublabel": "AiPath 配置(外部)", "pos": [780, 620], "size": [180, 60] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "GVA 后端服务", "wraps": ["api-autocode", "api-ai-session", "svc-package", "svc-database", "svc-llm", "svc-session", "tool-ast"] }
+  ],
+  "connections": [
+    { "id": "f-api1", "from": "user-frontend", "to": "api-autocode", "label": "HTTPS", "variant": "emphasis" },
+    { "id": "f-api2", "from": "user-frontend", "to": "api-ai-session", "label": "HTTPS", "variant": "default" },
+    { "id": "api-pkg", "from": "api-autocode", "to": "svc-package", "label": "生成包" },
+    { "id": "api-db", "from": "api-autocode", "to": "svc-database", "label": "库/表/列" },
+    { "id": "api-llm", "from": "api-autocode", "to": "svc-llm", "label": "LLM 请求" },
+    { "id": "api-sess", "from": "api-ai-session", "to": "svc-session", "label": "会话读写" },
+    { "id": "pkg-ast", "from": "svc-package", "to": "tool-ast", "label": "AST 注入", "variant": "emphasis", "labelAt": [730, 186] },
+    { "id": "pkg-src", "from": "svc-package", "to": "ext-src", "label": "渲染 .tpl 落盘", "labelDy": 40 },
+    { "id": "db-biz", "from": "svc-database", "to": "db-business", "label": "读元数据" },
+    { "id": "pkg-meta", "from": "svc-package", "to": "db-meta", "label": "包/历史记录" },
+    { "id": "sess-meta", "from": "svc-session", "to": "db-meta", "label": "会话记录" },
+    { "id": "llm-ext", "from": "svc-llm", "to": "ext-llm", "label": "HTTP / SSE 转发", "variant": "emphasis" }
+  ],
+  "cards": [
+    { "dot": "emerald", "title": "核心机制", "items": ["text/template 渲染 .tpl 模板", "Go AST 自动注入 enter.go 与初始化文件", "Database 接口按方言路由"] },
+    { "dot": "cyan", "title": "AI 能力", "items": ["LLM 阻塞 + SSE 流式代理", "会话按用户持久化(analysis/workflow)"] }
+  ]
+}

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>gin-vue-admin 插件体系（extension）子系统 · gin-vue-admin 架构文档</title>
+<style>
+  :root {
+    --bg: #f5f7fa; --card: #ffffff; --ink: #1c2733; --ink-2: #5a6b7c;
+    --line: #e3e8ee; --accent: #1f5f8b; --accent-soft: #e8f1f8;
+    --code-bg: #f0f3f6; --quote: #eef4f9; --code-ink: #0f1a24;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 32px 24px 64px; }
+  nav.topnav {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
+    font-size: 13px; color: var(--ink-2);
+  }
+  nav.topnav a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  nav.topnav a:hover { text-decoration: underline; }
+  nav.topnav .crumb {
+    background: var(--card); border: 1px solid var(--line); border-radius: 999px;
+    padding: 3px 12px; font-size: 12px; font-weight: 600; color: var(--ink-2);
+  }
+  article.doc {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 36px 44px;
+  }
+  article.doc h1 { font-size: 27px; line-height: 1.4; letter-spacing: -0.01em; padding-bottom: 14px; border-bottom: 1px solid var(--line); margin-bottom: 26px; }
+  article.doc h2 { font-size: 20px; margin: 36px 0 14px; padding-bottom: 8px; border-bottom: 1px solid #eef1f5; }
+  article.doc h3 { font-size: 16.5px; margin: 26px 0 10px; }
+  article.doc h4 { font-size: 15px; margin: 20px 0 8px; }
+  article.doc p { margin: 12px 0; }
+  article.doc ul, article.doc ol { margin: 12px 0; padding-left: 26px; }
+  article.doc li { margin: 5px 0; }
+  article.doc a { color: var(--accent); text-decoration: none; }
+  article.doc a:hover { text-decoration: underline; }
+  article.doc table { border-collapse: collapse; width: 100%; margin: 18px 0; font-size: 14px; display: block; overflow-x: auto; }
+  article.doc th { background: #f0f4f8; text-align: left; padding: 9px 13px; border: 1px solid var(--line); font-weight: 600; white-space: nowrap; }
+  article.doc td { padding: 9px 13px; border: 1px solid var(--line); vertical-align: top; }
+  article.doc tr:nth-child(even) td { background: #fafbfc; }
+  article.doc code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+  article.doc pre { background: var(--code-ink); color: #e6edf3; padding: 16px 18px; border-radius: 8px; overflow-x: auto; margin: 16px 0; line-height: 1.6; }
+  article.doc pre code { background: none; color: inherit; padding: 0; }
+  article.doc blockquote { border-left: 4px solid #b9cddd; background: var(--quote); margin: 16px 0; padding: 10px 16px; color: var(--ink-2); border-radius: 0 8px 8px 0; }
+  article.doc blockquote p { margin: 4px 0; }
+  article.doc img { max-width: 100%; border-radius: 8px; border: 1px solid var(--line); }
+  article.doc hr { border: none; border-top: 1px solid var(--line); margin: 28px 0; }
+  a.diagram-link {
+    display: inline-block; margin: 4px 0;
+    background: var(--accent-soft); border: 1px solid #cfe0ee; color: var(--accent);
+    border-radius: 8px; padding: 7px 16px; font-size: 13.5px; font-weight: 600;
+    text-decoration: none !important; transition: background 0.15s, border-color 0.15s;
+  }
+  a.diagram-link:hover { background: #dbeaf5; border-color: var(--accent); }
+  a.diagram-link::before { content: "打开交互式图："; font-weight: 400; }
+  footer.doc-foot { margin-top: 24px; font-size: 12.5px; color: var(--ink-2); text-align: center; }
+  @media (max-width: 640px) {
+    .wrap { padding: 20px 12px 40px; }
+    article.doc { padding: 24px 18px; }
+    article.doc h1 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="topnav">
+    <a href="../index.html">← gin-vue-admin 架构文档</a>
+    <span class="crumb">插件体系</span>
+  </nav>
+  <article class="doc">
+<h1 id="gin-vue-admin-extension">gin-vue-admin 插件体系（extension）子系统</h1>
+<blockquote>
+<p>本文档基于 gin-vue-admin 源码分析，覆盖插件机制、两个插件代际接口、三个示例插件与插件元数据自举安装流程。</p>
+</blockquote>
+<h2 id="1">1. 概述</h2>
+<p>gin-vue-admin（下文简称 GVA）的插件体系允许在不改动主框架业务代码的前提下，以独立目录（<code>server/plugin/&lt;name&gt;/</code>）挂载新业务模块，并在首次安装时自动写入 API 权限、前端菜单、字典与数据表。体系内同时存在两代插件接口：</p>
+<ul>
+<li><strong>v1 插件接口</strong>（<code>server/utils/plugin/plugin.go</code>）：要求实现 <code>Register(*gin.RouterGroup)</code> 与 <code>RouterPath() string</code>，由主程序手动构造并挂载到带路由前缀的 <code>RouterGroup</code>，以邮件插件为唯一内置实例。</li>
+<li><strong>v2 插件接口</strong>（<code>server/utils/plugin/v2/plugin.go</code>）：只要求实现 <code>Register(*gin.Engine)</code>，插件在自身 <code>init()</code> 中调用 <code>interfaces.Register(Plugin)</code> 自注册到全局注册表，主程序通过 blank import 触发 <code>init()</code> 后统一回调。</li>
+</ul>
+<p>插件的发现、初始化与路由挂载由 <code>server/initialize/</code> 下四个文件协同完成；插件在首次安装时借助 <code>server/plugin/plugin-tool/utils</code> 将自身元数据幂等写入 GVA 数据库的 <code>sys_api</code> / <code>sys_base_menu</code> / <code>sys_dictionary</code> 表，从而与系统的 RBAC 权限体系打通。</p>
+<p>核心源码路径：</p>
+<ul>
+<li>插件注册与编排：<code>server/initialize/plugin.go</code>、<code>server/initialize/plugin_biz_v1.go</code>、<code>server/initialize/plugin_biz_v2.go</code>、<code>server/initialize/plugin_notifier.go</code></li>
+<li>两代插件接口：<code>server/utils/plugin/plugin.go</code>、<code>server/utils/plugin/v2/plugin.go</code>、<code>server/utils/plugin/v2/registry.go</code></li>
+<li>blank import 聚合点：<code>server/plugin/register.go</code></li>
+<li>元数据安装工具：<code>server/plugin/plugin-tool/utils/check.go</code></li>
+<li>示例插件：<code>server/plugin/announcement/</code>、<code>server/plugin/email/</code>、<code>server/plugin/auto/</code></li>
+<li>路由挂接点：<code>server/initialize/router.go</code>（<code>InstallPlugin(PrivateGroup, PublicGroup, Router)</code>）</li>
+</ul>
+<h2 id="2">2. 功能清单</h2>
+<table>
+<thead>
+<tr>
+<th>功能</th>
+<th>说明</th>
+<th>源码路径</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>v1 插件接口</td>
+<td>定义 <code>Register(*gin.RouterGroup)</code> + <code>RouterPath() string</code> 两方法契约，插件以路由子路径挂载</td>
+<td><code>server/utils/plugin/plugin.go</code></td>
+</tr>
+<tr>
+<td>v2 插件接口</td>
+<td>定义 <code>Register(*gin.Engine)</code> 单方法契约，插件直接持有完整 Gin 引擎</td>
+<td><code>server/utils/plugin/v2/plugin.go</code></td>
+</tr>
+<tr>
+<td>v2 全局注册表</td>
+<td>读写互斥保护的 <code>[]Plugin</code> 切片，<code>Register</code>/<code>Registered</code> 供 init 自注册与启动期遍历</td>
+<td><code>server/utils/plugin/v2/registry.go</code></td>
+</tr>
+<tr>
+<td>blank import 聚合</td>
+<td>仅 blank import announcement、auto 两个包，触发其 <code>init()</code> 自注册</td>
+<td><code>server/plugin/register.go</code></td>
+</tr>
+<tr>
+<td>插件编排入口</td>
+<td><code>InstallPlugin</code> 在 Initialize 阶段被调用，按 DB 是否已就绪选择立即或延迟注册</td>
+<td><code>server/initialize/plugin.go</code></td>
+</tr>
+<tr>
+<td>v1 插件手动装载</td>
+<td><code>bizPluginV1</code> 用 <code>CreateEmailPlug(...)</code> 构造邮件插件，按 <code>RouterPath()</code> 建子路由组后 <code>Register</code></td>
+<td><code>server/initialize/plugin_biz_v1.go</code></td>
+</tr>
+<tr>
+<td>v2 插件批量装载</td>
+<td><code>bizPluginV2</code> 调 <code>PluginInitV2(engine, plugin.Registered()...)</code> 遍历回调</td>
+<td><code>server/initialize/plugin_biz_v2.go</code></td>
+</tr>
+<tr>
+<td>数据库就绪通知器</td>
+<td>单例 <code>DBReadyNotifier</code>，订阅/通知模式解耦"首次初始化建库"与"插件注册"时序</td>
+<td><code>server/initialize/plugin_notifier.go</code></td>
+</tr>
+<tr>
+<td>API 权限幂等注册</td>
+<td><code>RegisterApis</code> 事务内按 <code>path+method+api_group</code> FirstOrCreate 写入 <code>sys_api</code></td>
+<td><code>server/plugin/plugin-tool/utils/check.go</code></td>
+</tr>
+<tr>
+<td>菜单幂等注册</td>
+<td><code>RegisterMenus</code> 首项作为父菜单，其余以其 ID 为 <code>ParentId</code> 建子菜单</td>
+<td><code>server/plugin/plugin-tool/utils/check.go</code></td>
+</tr>
+<tr>
+<td>字典幂等注册</td>
+<td><code>RegisterDictionaries</code> 先建字典主表，再按 <code>sys_dictionary_id+value</code> 建详情</td>
+<td><code>server/plugin/plugin-tool/utils/check.go</code></td>
+</tr>
+<tr>
+<td>按插件名回溯元数据</td>
+<td><code>ApiMap/MenuMap/DictMap</code> 记录每个插件注册的元数据，供 <code>GetPluginData</code> 查询</td>
+<td><code>server/plugin/plugin-tool/utils/check.go</code></td>
+</tr>
+<tr>
+<td>公告插件（v2 示例）</td>
+<td><code>init()</code> 自注册；<code>Register</code> 内依次 <code>Api/Menu/Dictionary/Gorm/Router</code> 完成自举</td>
+<td><code>server/plugin/announcement/plugin.go</code>、<code>server/plugin/announcement/initialize/</code></td>
+</tr>
+<tr>
+<td>邮件插件（v1 示例）</td>
+<td>通过 <code>CreateEmailPlug</code> 注入 SMTP 配置，挂载 <code>/email</code> 路由组</td>
+<td><code>server/plugin/email/main.go</code>、<code>server/plugin/email/router/</code>、<code>server/plugin/email/service/</code></td>
+</tr>
+<tr>
+<td>自动代码插件（v2）</td>
+<td>承载 AI 代码生成相关路由（AutoCode / History / Skills）</td>
+<td><code>server/plugin/auto/plugin.go</code>、<code>server/plugin/auto/initialize/router.go</code></td>
+</tr>
+<tr>
+<td>插件私有路由鉴权</td>
+<td>插件内 <code>private.Use(middleware.JWTAuth()).Use(middleware.CasbinHandler())</code> 复用主框架中间件</td>
+<td><code>server/plugin/announcement/initialize/router.go</code>、<code>server/plugin/auto/initialize/router.go</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="3">3. 解决的问题</h2>
+<table>
+<thead>
+<tr>
+<th>用户痛点</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>每次新增业务模块都要改主框架的路由、菜单、权限表，升级易冲突</td>
+<td>插件以独立目录承载 api/service/model/router/initialize 全套，主框架仅保留两个接口与一个注册聚合点</td>
+</tr>
+<tr>
+<td>插件需要同时提供前端菜单、按钮级 API 权限、字典与数据表</td>
+<td>插件 <code>Register</code> 内调用 <code>initialize.Api/Menu/Dictionary/Gorm</code>，由 plugin-tool 统一幂等落库，开箱即有权限菜单</td>
+</tr>
+<tr>
+<td>全新部署时数据库表尚未建好，插件启动期读库会失败</td>
+<td><code>DBReadyNotifier</code> 把插件注册挂到 service 层 DB 就绪回调之后，首启与升级启动走同一套幂等流程</td>
+</tr>
+<tr>
+<td>插件元数据重复安装会产生脏数据</td>
+<td><code>FirstOrCreate</code> 按业务键（path+method、menu name、dict type）幂等写入，多次启动安全</td>
+</tr>
+<tr>
+<td>不同插件对路由粒度诉求不同（子路由组 vs 完整引擎）</td>
+<td>v1/v2 两代接口并存：简单 CRUD 用 v1 子路由组，需自定义中间件/公共路由的用 v2 完整引擎</td>
+</tr>
+</tbody>
+</table>
+<h2 id="4">4. 系统边界</h2>
+<p><strong>In-Scope（本仓库 <code>server/</code> 内实现）</strong>：</p>
+<ul>
+<li>两代插件接口定义与 v2 全局注册表（<code>server/utils/plugin/</code>）</li>
+<li>插件编排、DB 就绪通知、v1/v2 装载流程（<code>server/initialize/plugin*.go</code>）</li>
+<li>元数据幂等写入工具（<code>server/plugin/plugin-tool/utils/check.go</code>）</li>
+<li>三个内置示例插件：announcement、email、auto</li>
+<li>插件路由复用主框架的 JWT / Casbin 中间件</li>
+</ul>
+<p><strong>Out-of-Scope（外部系统 / 第三方组件，不在本仓库源码内）</strong>：</p>
+<ul>
+<li>关系型数据库（MySQL / PostgreSQL / SQLServer / Oracle / SQLite，由 GORM 接入）——插件元数据与业务表最终落在这里</li>
+<li>Casbin 鉴权引擎（<code>middleware.CasbinHandler</code> 底层）——不在本仓库源码内</li>
+<li>JWT 签发与校验库——不在本仓库源码内</li>
+<li>邮件插件实际依赖的外部 SMTP 服务器（七牛云/阿里云/腾讯云等邮件推送通道属部署侧配置）——不在本仓库源码内</li>
+<li>插件前端页面（<code>web/src/</code> 下对应组件，如 <code>plugin/announcement/view/info.vue</code>）不在后端仓库分析范围内</li>
+</ul>
+<h2 id="5">5. 架构图</h2>
+<p><a class="diagram-link" href="extension-architecture.html" target="_blank" rel="noopener">插件体系架构图</a></p>
+<p>图中按列从左到右展开：Gin 引擎在启动期调用 <code>InstallPlugin</code>；<code>InstallPlugin</code> 在数据库未就绪时把注册动作挂到 <code>DBReadyNotifier</code>，数据库就绪后再继续；v1 邮件插件由 <code>bizPluginV1</code> 手动构造并挂到 <code>/email</code> 子路由组；v2 插件通过 blank import 在 <code>init()</code> 自注册到全局注册表，<code>bizPluginV2</code> 遍历注册表回调各插件 <code>Register(engine)</code>；公告/自动代码插件在自身 <code>Register</code> 内调用 <code>plugin-tool</code> 把 API/菜单/字典幂等写入 GORM 数据库，并通过 <code>JWT+Casbin</code> 中间件保护私有路由。</p>
+<h2 id="6">6. 时序图</h2>
+<p><a class="diagram-link" href="extension-sequence.html" target="_blank" rel="noopener">插件加载时序图</a></p>
+<p>时序图以"冷启动且数据库尚未初始化"这一最复杂场景为例：阶段一 <code>InstallPlugin</code> 发现 <code>GVA_DB==nil</code>，将 <code>PluginParams</code> 交给 <code>DBReadyNotifier</code> 订阅；阶段二 service 层完成建表后触发 <code>NotifyDBReady</code>；阶段三回调里先从 v2 注册表取出全部插件，再逐个 <code>Register(engine)</code>，插件内部完成元数据入库与路由挂载，最后由编排层重刷 <code>GVA_ROUTERS</code>。若数据库已存在，则跳过阶段一/二直接进入阶段三。</p>
+  </article>
+  <footer class="doc-foot">gin-vue-admin 架构文档 · 渲染文档</footer>
+</div>
+</body>
+</html>

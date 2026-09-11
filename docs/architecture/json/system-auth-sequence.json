@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "gin-vue-admin 登录与鉴权时序",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "viewBox": [1080, 740],
+    "column_fit": "spread",
+    "animation": "trace",
+    "views": [
+      { "id": "login", "label": "登录签发", "focus": ["user", "web", "api", "db", "redis"], "note": "验证码校验、密码校验与 JWT 签发。" },
+      { "id": "authz", "label": "鉴权请求", "focus": ["user", "web", "api", "redis", "casbin", "db"], "note": "JWT 黑名单校验与 Casbin RBAC 策略校验。" }
+    ]
+  },
+  "participants": [
+    { "id": "user", "type": "external", "label": "用户", "sublabel": "浏览器" },
+    { "id": "web", "type": "frontend", "label": "Vue3 前端", "sublabel": "Pinia + Axios" },
+    { "id": "api", "type": "backend", "label": "Gin API", "sublabel": "JWT/Casbin 中间件" },
+    { "id": "casbin", "type": "security", "label": "Casbin RBAC", "sublabel": "策略校验" },
+    { "id": "redis", "type": "database", "label": "Redis", "sublabel": "黑名单/缓存" },
+    { "id": "db", "type": "database", "label": "关系库", "sublabel": "MySQL/GORM" }
+  ],
+  "segments": [
+    { "from": 150, "to": 340, "label": "登录签发" },
+    { "from": 348, "to": 645, "label": "鉴权请求" }
+  ],
+  "messages": [
+    { "id": "m1", "from": "user", "to": "web", "y": 160, "label": "输入账号密码", "variant": "default" },
+    { "id": "m2", "from": "web", "to": "api", "y": 188, "label": "POST /base/login", "variant": "emphasis" },
+    { "id": "m3", "from": "api", "to": "db", "y": 216, "label": "查询用户并校验密码", "variant": "default" },
+    { "id": "m4", "from": "db", "to": "api", "y": 244, "label": "用户记录", "variant": "return" },
+    { "id": "m5", "from": "api", "to": "redis", "y": 272, "label": "多点登录管理", "variant": "dashed" },
+    { "id": "m6", "from": "api", "to": "web", "y": 300, "label": "签发 JWT {token}", "variant": "emphasis" },
+    { "id": "m7", "from": "web", "to": "user", "y": 328, "label": "保存 token 渲染首页", "variant": "return" },
+    { "id": "m8", "from": "user", "to": "web", "y": 356, "label": "访问业务页面", "variant": "default" },
+    { "id": "m9", "from": "web", "to": "api", "y": 384, "label": "GET /menu/getMenu (x-token)", "variant": "emphasis" },
+    { "id": "m10", "from": "api", "to": "redis", "y": 412, "label": "校验 JWT 黑名单", "variant": "default" },
+    { "id": "m11", "from": "api", "to": "casbin", "y": 440, "label": "CasbinHandler 权限校验", "variant": "security" },
+    { "id": "m12", "from": "casbin", "to": "db", "y": 468, "label": "读取策略 (gorm-adapter)", "variant": "default" },
+    { "id": "m13", "from": "db", "to": "casbin", "y": 496, "label": "策略集", "variant": "return" },
+    { "id": "m14", "from": "casbin", "to": "api", "y": 524, "label": "通过", "variant": "return" },
+    { "id": "m15", "from": "api", "to": "db", "y": 552, "label": "查询菜单/业务数据", "variant": "default" },
+    { "id": "m16", "from": "db", "to": "api", "y": 580, "label": "数据", "variant": "return" },
+    { "id": "m17", "from": "api", "to": "web", "y": 608, "label": "200 {code,data,msg}", "variant": "return" },
+    { "id": "m18", "from": "web", "to": "user", "y": 636, "label": "渲染页面", "variant": "return" }
+  ],
+  "activations": [
+    { "participant": "web", "from": 155, "to": 640, "type": "frontend" },
+    { "participant": "api", "from": 188, "to": 615, "type": "backend" },
+    { "participant": "redis", "from": 265, "to": 420, "type": "database" },
+    { "participant": "casbin", "from": 434, "to": 530, "type": "security" },
+    { "participant": "db", "from": 210, "to": 590, "type": "database" }
+  ],
+  "cards": [
+    { "dot": "emerald", "title": "登录签发", "items": ["验证码由 base64Captcha 生成（不在本仓库源码内）", "密码采用加盐哈希存储与校验", "JWT 由 utils/jwt 签发，x-token 头传递"] },
+    { "dot": "rose", "title": "鉴权请求", "items": ["middleware/JWTAuth 校验 token 与黑名单", "middleware/CasbinHandler 按角色校验 API 权限", "动态菜单与按钮权限随角色下发"] }
+  ]
+}

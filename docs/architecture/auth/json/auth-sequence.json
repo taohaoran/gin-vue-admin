@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "gin-vue-admin 登录签发与请求鉴权时序",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "viewBox": [1280, 820],
+    "column_fit": "spread"
+  },
+  "participants": [
+    { "id": "user", "type": "external", "label": "前端浏览器", "sublabel": "Vue3" },
+    { "id": "base-api", "type": "backend", "label": "BaseApi", "sublabel": "Login/TokenNext" },
+    { "id": "user-svc", "type": "backend", "label": "UserService", "sublabel": "service/system" },
+    { "id": "jwt-util", "type": "backend", "label": "JWT 工具", "sublabel": "utils/jwt.go" },
+    { "id": "jwt-mw", "type": "security", "label": "JWTAuth", "sublabel": "中间件" },
+    { "id": "casbin-mw", "type": "security", "label": "CasbinHandler", "sublabel": "中间件" },
+    { "id": "db", "type": "database", "label": "数据库", "sublabel": "GORM" },
+    { "id": "redis", "type": "database", "label": "Redis", "sublabel": "单点登录" }
+  ],
+  "segments": [
+    { "from": 150, "to": 410, "label": "阶段一：登录与 JWT 签发" },
+    { "from": 450, "to": 680, "label": "阶段二：携带 Token 访问受保护接口" }
+  ],
+  "messages": [
+    { "id": "m1", "from": "user", "to": "base-api", "y": 165, "label": "POST /base/login（用户名/密码/验证码）", "variant": "emphasis" },
+    { "id": "m2", "from": "base-api", "to": "user-svc", "y": 205, "label": "Login(u)" },
+    { "id": "m3", "from": "user-svc", "to": "db", "y": 245, "label": "查询用户 + bcrypt 校验密码" },
+    { "id": "m4", "from": "db", "to": "user-svc", "y": 285, "label": "用户记录", "variant": "return" },
+    { "id": "m5", "from": "user-svc", "to": "jwt-util", "y": 320, "label": "LoginToken 构造 claims 并签发" },
+    { "id": "m6", "from": "jwt-util", "to": "redis", "y": 360, "label": "SetRedisJWT（UseMultipoint 单点登录）", "variant": "dashed" },
+    { "id": "m7", "from": "base-api", "to": "user", "y": 400, "label": "200 { token, expiresAt } + 写 Cookie", "variant": "return" },
+    { "id": "m8", "from": "user", "to": "jwt-mw", "y": 475, "label": "GET /xxx，请求头 x-token", "variant": "emphasis" },
+    { "id": "m9", "from": "jwt-mw", "to": "casbin-mw", "y": 520, "label": "解析 Token，claims 注入上下文后放行" },
+    { "id": "m10", "from": "casbin-mw", "to": "db", "y": 560, "label": "Enforce(authorityId, path, method)" },
+    { "id": "m11", "from": "db", "to": "casbin-mw", "y": 600, "label": "策略 allow / deny", "variant": "return" },
+    { "id": "m12", "from": "casbin-mw", "to": "user", "y": 645, "label": "200 业务数据 / 403 权限不足", "variant": "return" }
+  ],
+  "activations": [
+    { "participant": "base-api", "from": 165, "to": 400, "type": "backend" },
+    { "participant": "user-svc", "from": 205, "to": 320, "type": "backend" },
+    { "participant": "jwt-util", "from": 320, "to": 360, "type": "backend" },
+    { "participant": "jwt-mw", "from": 475, "to": 520, "type": "security" },
+    { "participant": "casbin-mw", "from": 520, "to": 645, "type": "security" }
+  ]
+}

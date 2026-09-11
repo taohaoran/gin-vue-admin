@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "代码生成管线数据流",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "viewBox": [1280, 680]
+  },
+  "stages": [
+    { "label": "输入" },
+    { "label": "元数据与渲染" },
+    { "label": "代码生成" },
+    { "label": "AST 注入" },
+    { "label": "落盘与记录" }
+  ],
+  "nodes": [
+    { "id": "user-form", "type": "frontend", "label": "用户表单", "sublabel": "选库表/包名/模板", "stage": 0, "row": 0 },
+    { "id": "db-business", "type": "database", "label": "业务数据库", "sublabel": "读表/列元数据", "stage": 1, "row": 0 },
+    { "id": "tpl-engine", "type": "backend", "label": "模板引擎", "sublabel": "text/template+字段函数", "stage": 1, "row": 1 },
+    { "id": "gen-backend", "type": "backend", "label": "生成后端代码", "sublabel": "api/router/service/model", "stage": 2, "row": 0 },
+    { "id": "gen-frontend", "type": "frontend", "label": "生成前端代码", "sublabel": "api/form/view/table", "stage": 2, "row": 1 },
+    { "id": "ast-inject", "type": "backend", "label": "AST 注入器", "sublabel": "改写 enter/gorm+gofmt", "stage": 3, "row": 0 },
+    { "id": "db-meta", "type": "database", "label": "元数据库", "sublabel": "包/生成历史", "stage": 4, "row": 0 },
+    { "id": "src-tree", "type": "external", "label": "源码树", "sublabel": "server/ 与 web/src/ 落盘", "stage": 4, "row": 1 }
+  ],
+  "flows": [
+    { "from": "user-form", "to": "db-business", "label": "表/列查询", "classification": "businessDB", "variant": "default", "route": "straight" },
+    { "from": "user-form", "to": "tpl-engine", "label": "包信息+字段", "classification": "AutoCode request", "variant": "emphasis", "route": "bottom-channel" },
+    { "from": "db-business", "to": "tpl-engine", "label": "列元数据", "classification": "[]Column", "variant": "default", "labelAt": [315, 200] },
+    { "from": "tpl-engine", "to": "gen-backend", "label": "渲染后端", "classification": "server/*.tpl", "variant": "emphasis" },
+    { "from": "tpl-engine", "to": "gen-frontend", "label": "渲染前端", "classification": "web/*.tpl", "variant": "default", "route": "bottom-channel" },
+    { "from": "gen-backend", "to": "ast-inject", "label": "生成 .go", "classification": "Go files", "variant": "emphasis" },
+    { "from": "gen-frontend", "to": "src-tree", "label": "写 Vue", "classification": "*.vue", "variant": "default", "route": "straight" },
+    { "from": "ast-inject", "to": "src-tree", "label": "注入改写", "classification": "enter.go/初始化", "variant": "emphasis" },
+    { "from": "ast-inject", "to": "db-meta", "label": "写历史", "classification": "Package/History", "variant": "default", "route": "straight" }
+  ]
+}

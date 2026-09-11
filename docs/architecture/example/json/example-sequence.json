@@ -1,0 +1,182 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "exa_customer 客户列表查询时序图",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "viewBox": [1200, 800],
+    "column_fit": "spread"
+  },
+  "participants": [
+    {
+      "id": "fe-page",
+      "type": "frontend",
+      "label": "前端页面",
+      "sublabel": "customer.vue"
+    },
+    {
+      "id": "fe-api",
+      "type": "frontend",
+      "label": "前端 API",
+      "sublabel": "customer.js"
+    },
+    {
+      "id": "router",
+      "type": "backend",
+      "label": "Gin 路由",
+      "sublabel": "GET /customerList"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "CustomerApi",
+      "sublabel": "GetList"
+    },
+    {
+      "id": "service",
+      "type": "backend",
+      "label": "CustomerSvc",
+      "sublabel": "GetCustomerList"
+    },
+    {
+      "id": "auth-svc",
+      "type": "backend",
+      "label": "AuthSvc",
+      "sublabel": "GetAuthorityInfo"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "数据库",
+      "sublabel": "GORM"
+    }
+  ],
+  "segments": [
+    { "from": 160, "to": 320, "label": "前端请求与路由分发" },
+    { "from": 320, "to": 560, "label": "数据权限校验" },
+    { "from": 560, "to": 720, "label": "分页查询与响应" }
+  ],
+  "messages": [
+    {
+      "id": "m1",
+      "from": "fe-page",
+      "to": "fe-api",
+      "y": 180,
+      "label": "getExaCustomerList({page,pageSize})",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m2",
+      "from": "fe-api",
+      "to": "router",
+      "y": 230,
+      "label": "GET /customer/customerList",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m3",
+      "from": "router",
+      "to": "api",
+      "y": 280,
+      "label": "分发到 GetList",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m4",
+      "from": "api",
+      "to": "service",
+      "y": 340,
+      "label": "GetCustomerList(authorityId, pageInfo)",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m5",
+      "from": "service",
+      "to": "auth-svc",
+      "y": 400,
+      "label": "GetAuthorityInfo(authorityId)",
+      "variant": "default"
+    },
+    {
+      "id": "m6",
+      "from": "auth-svc",
+      "to": "db",
+      "y": 450,
+      "label": "查询角色数据权限",
+      "variant": "default"
+    },
+    {
+      "id": "m7",
+      "from": "db",
+      "to": "auth-svc",
+      "y": 490,
+      "label": "返回 DataAuthorityId",
+      "variant": "return"
+    },
+    {
+      "id": "m8",
+      "from": "auth-svc",
+      "to": "service",
+      "y": 520,
+      "label": "返回数据权限 ID 集合",
+      "variant": "return"
+    },
+    {
+      "id": "m9",
+      "from": "service",
+      "to": "db",
+      "y": 570,
+      "label": "WHERE authority_id IN (?) 分页查询 + Preload",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m10",
+      "from": "db",
+      "to": "service",
+      "y": 620,
+      "label": "客户列表 + total",
+      "variant": "return"
+    },
+    {
+      "id": "m11",
+      "from": "service",
+      "to": "api",
+      "y": 660,
+      "label": "(list, total, err)",
+      "variant": "return"
+    },
+    {
+      "id": "m12",
+      "from": "api",
+      "to": "fe-api",
+      "y": 680,
+      "label": "{code,data:{list,total},msg}",
+      "variant": "return"
+    },
+    {
+      "id": "m13",
+      "from": "fe-api",
+      "to": "fe-page",
+      "y": 710,
+      "label": "渲染表格与分页",
+      "variant": "return"
+    }
+  ],
+  "activations": [
+    { "participant": "service", "from": 340, "to": 660, "type": "backend" },
+    { "participant": "api", "from": 280, "to": 700, "type": "backend" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "关键点",
+      "items": [
+        "GET 请求不挂载 OperationRecord 中间件",
+        "Service 层跨域调用 system 域 AuthSvc",
+        "数据权限按 sys_user_authority_id 过滤",
+        "Preload(SysUser) 联表返回接入人信息"
+      ]
+    }
+  ]
+}

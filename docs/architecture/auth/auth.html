@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>gin-vue-admin 认证与授权（auth）子系统 · gin-vue-admin 架构文档</title>
+<style>
+  :root {
+    --bg: #f5f7fa; --card: #ffffff; --ink: #1c2733; --ink-2: #5a6b7c;
+    --line: #e3e8ee; --accent: #1f5f8b; --accent-soft: #e8f1f8;
+    --code-bg: #f0f3f6; --quote: #eef4f9; --code-ink: #0f1a24;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 32px 24px 64px; }
+  nav.topnav {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
+    font-size: 13px; color: var(--ink-2);
+  }
+  nav.topnav a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  nav.topnav a:hover { text-decoration: underline; }
+  nav.topnav .crumb {
+    background: var(--card); border: 1px solid var(--line); border-radius: 999px;
+    padding: 3px 12px; font-size: 12px; font-weight: 600; color: var(--ink-2);
+  }
+  article.doc {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 36px 44px;
+  }
+  article.doc h1 { font-size: 27px; line-height: 1.4; letter-spacing: -0.01em; padding-bottom: 14px; border-bottom: 1px solid var(--line); margin-bottom: 26px; }
+  article.doc h2 { font-size: 20px; margin: 36px 0 14px; padding-bottom: 8px; border-bottom: 1px solid #eef1f5; }
+  article.doc h3 { font-size: 16.5px; margin: 26px 0 10px; }
+  article.doc h4 { font-size: 15px; margin: 20px 0 8px; }
+  article.doc p { margin: 12px 0; }
+  article.doc ul, article.doc ol { margin: 12px 0; padding-left: 26px; }
+  article.doc li { margin: 5px 0; }
+  article.doc a { color: var(--accent); text-decoration: none; }
+  article.doc a:hover { text-decoration: underline; }
+  article.doc table { border-collapse: collapse; width: 100%; margin: 18px 0; font-size: 14px; display: block; overflow-x: auto; }
+  article.doc th { background: #f0f4f8; text-align: left; padding: 9px 13px; border: 1px solid var(--line); font-weight: 600; white-space: nowrap; }
+  article.doc td { padding: 9px 13px; border: 1px solid var(--line); vertical-align: top; }
+  article.doc tr:nth-child(even) td { background: #fafbfc; }
+  article.doc code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+  article.doc pre { background: var(--code-ink); color: #e6edf3; padding: 16px 18px; border-radius: 8px; overflow-x: auto; margin: 16px 0; line-height: 1.6; }
+  article.doc pre code { background: none; color: inherit; padding: 0; }
+  article.doc blockquote { border-left: 4px solid #b9cddd; background: var(--quote); margin: 16px 0; padding: 10px 16px; color: var(--ink-2); border-radius: 0 8px 8px 0; }
+  article.doc blockquote p { margin: 4px 0; }
+  article.doc img { max-width: 100%; border-radius: 8px; border: 1px solid var(--line); }
+  article.doc hr { border: none; border-top: 1px solid var(--line); margin: 28px 0; }
+  a.diagram-link {
+    display: inline-block; margin: 4px 0;
+    background: var(--accent-soft); border: 1px solid #cfe0ee; color: var(--accent);
+    border-radius: 8px; padding: 7px 16px; font-size: 13.5px; font-weight: 600;
+    text-decoration: none !important; transition: background 0.15s, border-color 0.15s;
+  }
+  a.diagram-link:hover { background: #dbeaf5; border-color: var(--accent); }
+  a.diagram-link::before { content: "打开交互式图："; font-weight: 400; }
+  footer.doc-foot { margin-top: 24px; font-size: 12.5px; color: var(--ink-2); text-align: center; }
+  @media (max-width: 640px) {
+    .wrap { padding: 20px 12px 40px; }
+    article.doc { padding: 24px 18px; }
+    article.doc h1 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="topnav">
+    <a href="../index.html">← gin-vue-admin 架构文档</a>
+    <span class="crumb">认证与授权</span>
+  </nav>
+  <article class="doc">
+<h1 id="gin-vue-admin-auth">gin-vue-admin 认证与授权（auth）子系统</h1>
+<blockquote>
+<p>本文档基于 gin-vue-admin v2.9.2 源码（后端模块 <code>github.com/flipped-aurora/gin-vue-admin/server</code>）分析，覆盖登录认证、JWT 签发与校验、RBAC 授权、角色/菜单/API 权限管理以及 API Token 管理的核心能力与边界。</p>
+</blockquote>
+<h2 id="1">1. 概述</h2>
+<p>auth 子系统负责"你是谁"（认证 Authentication）与"你能做什么"（授权 Authorization）两件事，是 gin-vue-admin 私有路由组（<code>PrivateGroup</code>）的第一道防线。</p>
+<p>整体采用双层中间件模型：</p>
+<ol>
+<li><strong>认证层</strong>：<code>middleware.JWTAuth()</code> 从请求头 <code>x-token</code>（或 Cookie）解析 JWT，校验签名、过期时间与黑名单，并在缓冲期内自动续签。</li>
+<li><strong>授权层</strong>：<code>middleware.CasbinHandler()</code> 从已注入的 claims 取出 <code>AuthorityId</code>，调用 Casbin Enforcer 执行 <code>sub=角色, obj=路径, act=方法</code> 的策略匹配。</li>
+</ol>
+<p>两层中间件在 <code>server/initialize/router.go</code> 中统一挂载到 <code>PrivateGroup</code>，所有业务路由均受其保护；登录、健康检查、Swagger 等走 <code>PublicGroup</code> 不经过鉴权。</p>
+<p>核心代码路径：</p>
+<ul>
+<li>中间件：<code>server/middleware/jwt.go</code>、<code>server/middleware/casbin_rbac.go</code></li>
+<li>JWT 与上下文工具：<code>server/utils/jwt.go</code>、<code>server/utils/claims.go</code>、<code>server/utils/casbin_util.go</code></li>
+<li>Service：<code>server/service/system/sys_casbin.go</code>、<code>sys_authority.go</code>、<code>sys_authority_btn.go</code>、<code>sys_base_menu.go</code>、<code>sys_menu.go</code>、<code>sys_api.go</code>、<code>sys_api_token.go</code>、<code>jwt_black_list.go</code></li>
+<li>API：<code>server/api/v1/system/sys_casbin.go</code>、<code>sys_authority.go</code>、<code>sys_authority_btn.go</code>、<code>sys_menu.go</code>、<code>sys_api.go</code>、<code>sys_api_token.go</code>、<code>sys_jwt_blacklist.go</code></li>
+<li>Model：<code>server/model/system/sys_authority.go</code>、<code>sys_authority_btn.go</code>、<code>sys_authority_menu.go</code>、<code>sys_base_menu.go</code>、<code>sys_menu_btn.go</code>、<code>sys_api.go</code>、<code>sys_api_token.go</code>、<code>sys_jwt_blacklist.go</code>、<code>sys_user_authority.go</code></li>
+<li>路由：<code>server/router/system/sys_casbin.go</code>、<code>sys_authority.go</code>、<code>sys_authority_btn.go</code>、<code>sys_jwt.go</code>、<code>sys_menu.go</code>、<code>sys_api.go</code></li>
+<li>配置：<code>server/config/jwt.go</code>；初始化：<code>server/initialize/other.go</code>（BlackCache）、<code>server/initialize/ensure_tables.go</code>（CasbinRule 表迁移）</li>
+</ul>
+<h2 id="2">2. 功能清单</h2>
+<table>
+<thead>
+<tr>
+<th>功能</th>
+<th>说明</th>
+<th>源码路径</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>用户名密码登录</td>
+<td>校验验证码/密码（bcrypt），签发 JWT，记录登录日志</td>
+<td><code>server/api/v1/system/sys_user.go</code>（<code>Login</code>/<code>TokenNext</code>）、<code>server/service/system/sys_user.go</code>（<code>Login</code>）</td>
+</tr>
+<tr>
+<td>JWT 签发与解析</td>
+<td>HS256 签名，claims 含用户 ID/UUID/昵称/角色，支持缓冲期续签</td>
+<td><code>server/utils/jwt.go</code>、<code>server/utils/claims.go</code></td>
+</tr>
+<tr>
+<td>JWT 认证中间件</td>
+<td>取 token、查黑名单、ParseToken、注入 claims、临期自动续签并下发 <code>new-token</code> 响应头</td>
+<td><code>server/middleware/jwt.go</code></td>
+</tr>
+<tr>
+<td>JWT 黑名单</td>
+<td>登出/异地登录时将 token 写入 DB + 本地 BlackCache，中间件即时拦截</td>
+<td><code>server/service/system/jwt_black_list.go</code>、<code>server/api/v1/system/sys_jwt_blacklist.go</code></td>
+</tr>
+<tr>
+<td>单点登录</td>
+<td><code>UseMultipoint</code> 开启时，Redis 记录用户名最新 token，新登录使旧 token 入黑名单</td>
+<td><code>server/api/v1/system/sys_user.go</code>（<code>TokenNext</code>）、<code>server/utils/jwt.go</code>（<code>SetRedisJWT</code>）</td>
+</tr>
+<tr>
+<td>Casbin RBAC 鉴权</td>
+<td>中间件按 <code>(角色, 路径, 方法)</code> 执行 Enforce，策略持久化在 casbin_rule 表</td>
+<td><code>server/middleware/casbin_rbac.go</code>、<code>server/utils/casbin_util.go</code></td>
+</tr>
+<tr>
+<td>角色 API 权限管理</td>
+<td>为角色批量增删改 API 策略，支持严格树形权限校验与 API 去重</td>
+<td><code>server/service/system/sys_casbin.go</code>、<code>server/api/v1/system/sys_casbin.go</code></td>
+</tr>
+<tr>
+<td>角色管理</td>
+<td>创建/复制/更新/删除角色，创建时绑定默认菜单与默认 Casbin 策略，删除时级联清理</td>
+<td><code>server/service/system/sys_authority.go</code></td>
+</tr>
+<tr>
+<td>角色-用户绑定</td>
+<td>全量覆盖角色用户列表，主角色失效时自动切换</td>
+<td><code>server/service/system/sys_authority.go</code>（<code>SetRoleUsers</code>）</td>
+</tr>
+<tr>
+<td>角色-菜单绑定</td>
+<td>设置角色可见菜单、数据权限范围（父子角色树）</td>
+<td><code>server/service/system/sys_authority.go</code>（<code>SetMenuAuthority</code>/<code>SetDataAuthority</code>）</td>
+</tr>
+<tr>
+<td>按钮级权限</td>
+<td>角色按钮权限配置与 API 关联维护</td>
+<td><code>server/service/system/sys_authority_btn.go</code>、<code>server/model/system/sys_authority_btn.go</code></td>
+</tr>
+<tr>
+<td>API 元数据管理</td>
+<td>注册/维护后端 API 元数据，作为 Casbin 策略与前端动态路由的数据源</td>
+<td><code>server/service/system/sys_api.go</code>、<code>server/router/system/sys_api.go</code></td>
+</tr>
+<tr>
+<td>API Token（长期 Token）</td>
+<td>为指定用户+角色签发长期 JWT（按天或永久），支持列表查询与作废（入黑名单）</td>
+<td><code>server/service/system/sys_api_token.go</code>、<code>server/api/v1/system/sys_api_token.go</code></td>
+</tr>
+<tr>
+<td>JWT 配置</td>
+<td>签名密钥、过期时间、缓冲时间、签发者可配置</td>
+<td><code>server/config/jwt.go</code></td>
+</tr>
+<tr>
+<td>种子数据</td>
+<td>初始化默认角色、菜单、API、Casbin 策略</td>
+<td><code>server/source/system/authority.go</code>、<code>casbin.go</code>、<code>menu.go</code>、<code>api.go</code>、<code>authorities_menus.go</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="3">3. 解决的问题</h2>
+<table>
+<thead>
+<tr>
+<th>用户痛点</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>前后端分离后无法用 Session 维持登录态</td>
+<td>无状态 JWT：登录签发 token，后续请求带 <code>x-token</code>，服务端不存会话</td>
+</tr>
+<tr>
+<td>token 无法主动失效（登出/异地登录）</td>
+<td>JWT 黑名单：登出时写 DB + 本地 BlackCache，中间件逐请求拦截；重启时 <code>LoadAll</code> 从 DB 恢复</td>
+</tr>
+<tr>
+<td>同一账号多处登录互相踢下线</td>
+<td><code>UseMultipoint</code> 模式下用 Redis 存用户名最新 token，新登录自动将旧 token 拉黑</td>
+</tr>
+<tr>
+<td>细粒度 API 授权需要灵活可配</td>
+<td>Casbin RBAC：<code>(role, path, method)</code> 三元策略，gorm-adapter 持久化，带缓存（1h）</td>
+</tr>
+<tr>
+<td>多级角色树需要权限收敛</td>
+<td><code>UseStrictAuth</code> 严格模式：创建/修改角色时校验目标角色必须在当前管理员的子树内</td>
+</tr>
+<tr>
+<td>token 临期导致用户操作中断</td>
+<td>缓冲期机制：剩余时间小于 BufferTime 时自动签发新 token，通过 <code>new-token</code>/<code>new-expires-at</code> 响应头下发</td>
+</tr>
+<tr>
+<td>第三方系统对接不想走浏览器登录</td>
+<td>API Token：按用户+角色签发长期 JWT，可随时作废并立即入黑名单</td>
+</tr>
+<tr>
+<td>按钮级操作也要按角色控制</td>
+<td>角色-按钮关联表（<code>sys_authority_btns</code>）+ 前端按权限渲染</td>
+</tr>
+</tbody>
+</table>
+<h2 id="4">4. 系统边界</h2>
+<p><strong>In-Scope（本仓库实现）</strong></p>
+<ul>
+<li>JWT 的签发、解析、续签、黑名单、单点登录逻辑</li>
+<li>Casbin Enforcer 的初始化（字符串模型 + gorm-adapter）、策略增删改查与刷新</li>
+<li>角色（Authority）、角色树、角色-菜单、角色-用户、角色-按钮、API 元数据的 CRUD</li>
+<li>API Token 的签发、列表、作废</li>
+<li>认证与授权两个 Gin 中间件及其在路由组上的统一挂载</li>
+</ul>
+<p><strong>Out-of-Scope（外部系统 / 第三方组件，不在本仓库源码内）</strong></p>
+<ul>
+<li>关系型数据库（MySQL / PostgreSQL / SQLServer / Oracle / SQLite）：通过 GORM 访问，存储用户、角色、菜单、casbin_rule、jwt_blacklists 等表</li>
+<li>Redis：用于单点登录最新 token 记录（<code>global.GVA_REDIS</code>）</li>
+<li>Casbin（<code>github.com/casbin/casbin/v3</code>）与 gorm-adapter：策略引擎与持久化适配器，第三方库</li>
+<li>golang-jwt/v5：JWT 签发与解析库，第三方组件</li>
+<li>本地缓存 <code>github.com/songzhibin97/gkit/cache/local_cache</code>：JWT 黑名单进程内缓存，第三方组件</li>
+<li>验证码（github.com/mojocn/base64Captcha）：登录验证码，第三方组件</li>
+<li>前端 Vue3 + Element Plus：token 的存储、请求头携带与权限按钮渲染，在 <code>web/</code> 目录（独立前端工程）</li>
+</ul>
+<h2 id="5">5. 架构图</h2>
+<p><a class="diagram-link" href="auth-architecture.html" target="_blank" rel="noopener">auth 子系统架构图</a></p>
+<p>图中主链路为横向流水线：前端浏览器 → JWT 鉴权中间件 → Casbin 鉴权中间件 → API/Service 层。下方三个支撑组件分别承担：JWT 黑名单本地缓存（JWTAuth 中间件逐请求查询）、Casbin Enforcer（CasbinHandler 调用 <code>Enforce</code>，策略来自数据库 casbin_rule 表）、业务数据库（GORM 读写用户/角色/策略）。右侧 Redis 在 <code>UseMultipoint</code> 开启时记录单点登录状态。两个虚线框分别表示 Gin 私有路由组边界与鉴权组件集合。</p>
+<h2 id="6">6. 时序图</h2>
+<p><a class="diagram-link" href="auth-sequence.html" target="_blank" rel="noopener">登录签发与请求鉴权时序</a></p>
+<p>时序图分为两个阶段：</p>
+<ul>
+<li><strong>阶段一：登录与 JWT 签发</strong>。前端提交用户名/密码/验证码，BaseApi 调用 UserService 查询用户并做 bcrypt 校验，随后由 JWT 工具构造 claims 并签发 token；开启单点登录时写入 Redis，最终通过 Set-Cookie 与响应体返回 token。</li>
+<li><strong>阶段二：携带 Token 访问受保护接口</strong>。前端请求带 <code>x-token</code>，JWTAuth 中间件解析并注入 claims 后放行；CasbinHandler 调用 Enforcer 按角色/路径/方法匹配策略，allow 则进入业务，deny 则返回 403 权限不足。</li>
+</ul>
+<h2 id="7">7. 备注</h2>
+<ul>
+<li>中间件中"已登录用户被禁用则使 JWT 失效"的逻辑默认注释关闭（每次请求查库开销较大），如需启用可参考 <code>server/middleware/jwt.go</code> 中的注释块。</li>
+<li>Casbin 模型为字符串内嵌定义（<code>server/utils/casbin_util.go</code>），匹配器使用 <code>keyMatch2</code> 支持路径参数占位。</li>
+</ul>
+  </article>
+  <footer class="doc-foot">gin-vue-admin 架构文档 · 渲染文档</footer>
+</div>
+</body>
+</html>

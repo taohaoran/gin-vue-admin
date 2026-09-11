@@ -1,0 +1,170 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "GVA 插件加载时序图（冷启动场景）",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "viewBox": [1180, 820]
+  },
+  "participants": [
+    {
+      "id": "main",
+      "type": "external",
+      "label": "GVA 主进程",
+      "sublabel": "initialize/router.go"
+    },
+    {
+      "id": "install",
+      "type": "backend",
+      "label": "InstallPlugin",
+      "sublabel": "initialize/plugin.go"
+    },
+    {
+      "id": "notifier",
+      "type": "backend",
+      "label": "就绪通知器",
+      "sublabel": "DBReadyNotifier"
+    },
+    {
+      "id": "registry",
+      "type": "backend",
+      "label": "v2 注册表",
+      "sublabel": "utils/plugin/v2"
+    },
+    {
+      "id": "plugin",
+      "type": "backend",
+      "label": "示例插件",
+      "sublabel": "announcement/auto"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "GORM 数据库",
+      "sublabel": "MySQL 等"
+    }
+  ],
+  "segments": [
+    {
+      "from": 150,
+      "to": 240,
+      "label": "阶段一：启动编排（DB 未就绪）"
+    },
+    {
+      "from": 260,
+      "to": 360,
+      "label": "阶段二：DB 就绪事件"
+    },
+    {
+      "from": 380,
+      "to": 640,
+      "label": "阶段三：插件自举与路由挂载"
+    }
+  ],
+  "messages": [
+    {
+      "id": "m1",
+      "from": "main",
+      "to": "install",
+      "y": 160,
+      "label": "InstallPlugin(Private, Public, engine)",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m2",
+      "from": "install",
+      "to": "notifier",
+      "y": 210,
+      "label": "GVA_DB==nil，Subscribe 保存 PluginParams",
+      "variant": "dashed"
+    },
+    {
+      "id": "m3",
+      "from": "notifier",
+      "to": "install",
+      "y": 290,
+      "label": "NotifyDBReady() 触发订阅回调",
+      "variant": "return"
+    },
+    {
+      "id": "m4",
+      "from": "install",
+      "to": "registry",
+      "y": 340,
+      "label": "plugin.Registered() 取得全部 v2 插件",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m5",
+      "from": "registry",
+      "to": "plugin",
+      "y": 400,
+      "label": "Register(engine) 逐个回调",
+      "variant": "default"
+    },
+    {
+      "id": "m6",
+      "from": "plugin",
+      "to": "db",
+      "y": 460,
+      "label": "Api/Menu/Dictionary FirstOrCreate + Gorm AutoMigrate",
+      "variant": "default"
+    },
+    {
+      "id": "m7",
+      "from": "db",
+      "to": "plugin",
+      "y": 510,
+      "label": "元数据写入完成（幂等）",
+      "variant": "return"
+    },
+    {
+      "id": "m8",
+      "from": "plugin",
+      "to": "install",
+      "y": 570,
+      "label": "initialize.Router(engine) 挂载 public/private 路由",
+      "variant": "default"
+    },
+    {
+      "id": "m9",
+      "from": "install",
+      "to": "main",
+      "y": 630,
+      "label": "重刷 GVA_ROUTERS = engine.Routes()，注册完成",
+      "variant": "return"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "install",
+      "from": 160,
+      "to": 240,
+      "type": "backend"
+    },
+    {
+      "participant": "install",
+      "from": 290,
+      "to": 640,
+      "type": "backend"
+    },
+    {
+      "participant": "plugin",
+      "from": 400,
+      "to": 570,
+      "type": "backend"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "关键时序约束",
+      "items": [
+        "blank import 阶段各 v2 插件已在 init() 完成自注册",
+        "数据库已存在时跳过阶段一/二，直接执行阶段三",
+        "v1 邮件插件由 bizPluginV1 手动构造，不走注册表"
+      ]
+    }
+  ]
+}

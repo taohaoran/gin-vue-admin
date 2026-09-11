@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "文件存储与上传子系统架构（策略模式）",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "viewBox": [1280, 760],
+    "views": [
+      { "id": "main", "label": "主路径", "focus": ["oss-factory", "svc-file"], "note": "面向 OSS 接口编程，工厂按 oss-type 选驱动" }
+    ]
+  },
+  "components": [
+    { "id": "user-frontend", "type": "frontend", "label": "前端 Vue3", "sublabel": "上传/分片/分类", "pos": [30, 330], "size": [140, 70] },
+    { "id": "api-file", "type": "backend", "label": "FileUploadApi", "sublabel": "上传/删除/列表", "pos": [250, 170], "size": [160, 60] },
+    { "id": "api-cat", "type": "backend", "label": "AttachmentCategoryApi", "sublabel": "树形分类", "pos": [250, 450], "size": [170, 60] },
+    { "id": "svc-file", "type": "backend", "label": "FileUploadService", "sublabel": "编排上传/记录", "pos": [500, 170], "size": [170, 60], "tag": "鉴权组" },
+    { "id": "svc-chunk", "type": "backend", "label": "断点续传 Service", "sublabel": "分片/秒传/合并", "pos": [500, 450], "size": [170, 60] },
+    { "id": "oss-factory", "type": "backend", "label": "OSS 接口 + NewOss 工厂", "sublabel": "upload/upload.go", "pos": [770, 300], "size": [190, 70], "tag": "策略模式核心" },
+    { "id": "local", "type": "external", "label": "Local 本地磁盘", "sublabel": "store-path(本仓库落盘)", "pos": [1050, 140], "size": [160, 60] },
+    { "id": "cloud", "type": "cloud", "label": "七云厂商对象存储", "sublabel": "七牛/阿里/腾讯/华为/S3/R2/MinIO", "pos": [1050, 320], "size": [180, 60] },
+    { "id": "db", "type": "database", "label": "GORM 元数据库", "sublabel": "文件记录/分类/分片", "pos": [770, 520], "size": [170, 60] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "GVA 后端 (example 域)", "wraps": ["api-file", "api-cat", "svc-file", "svc-chunk", "oss-factory"] }
+  ],
+  "connections": [
+    { "id": "f-api1", "from": "user-frontend", "to": "api-file", "label": "multipart 上传/分片", "variant": "emphasis", "labelDy": 30 },
+    { "id": "f-api2", "from": "user-frontend", "to": "api-cat", "label": "分类树管理", "labelDy": 30 },
+    { "id": "api-svc", "from": "api-file", "to": "svc-file", "label": "UploadFile/Delete" },
+    { "id": "cat-svc", "from": "api-cat", "to": "svc-file", "label": "分类增删" },
+    { "id": "svc-oss", "from": "svc-file", "to": "oss-factory", "label": "NewOss() 选驱动", "variant": "emphasis", "labelDy": 30 },
+    { "id": "chunk-oss", "from": "svc-chunk", "to": "oss-factory", "label": "分片落地", "labelDy": 30 },
+    { "id": "svc-db", "from": "svc-file", "to": "db", "label": "文件记录 CRUD" },
+    { "id": "chunk-db", "from": "svc-chunk", "to": "db", "label": "分片元数据" },
+    { "id": "oss-local", "from": "oss-factory", "to": "local", "label": "local 驱动" },
+    { "id": "oss-cloud", "from": "oss-factory", "to": "cloud", "label": "云厂商驱动", "variant": "emphasis" }
+  ],
+  "cards": [
+    { "dot": "emerald", "title": "策略模式", "items": ["OSS 接口仅两个方法", "NewOss() 按 oss-type 返回实现", "业务层零感知底层存储"] },
+    { "dot": "amber", "title": "断点续传", "items": ["文件 MD5 秒传", "分片校验+合并+清理", "路径穿越拦截"] }
+  ]
+}

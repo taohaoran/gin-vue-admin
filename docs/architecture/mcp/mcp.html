@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>gin-vue-admin MCP 服务器与客户端子系统（mcp） · gin-vue-admin 架构文档</title>
+<style>
+  :root {
+    --bg: #f5f7fa; --card: #ffffff; --ink: #1c2733; --ink-2: #5a6b7c;
+    --line: #e3e8ee; --accent: #1f5f8b; --accent-soft: #e8f1f8;
+    --code-bg: #f0f3f6; --quote: #eef4f9; --code-ink: #0f1a24;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 32px 24px 64px; }
+  nav.topnav {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
+    font-size: 13px; color: var(--ink-2);
+  }
+  nav.topnav a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  nav.topnav a:hover { text-decoration: underline; }
+  nav.topnav .crumb {
+    background: var(--card); border: 1px solid var(--line); border-radius: 999px;
+    padding: 3px 12px; font-size: 12px; font-weight: 600; color: var(--ink-2);
+  }
+  article.doc {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 36px 44px;
+  }
+  article.doc h1 { font-size: 27px; line-height: 1.4; letter-spacing: -0.01em; padding-bottom: 14px; border-bottom: 1px solid var(--line); margin-bottom: 26px; }
+  article.doc h2 { font-size: 20px; margin: 36px 0 14px; padding-bottom: 8px; border-bottom: 1px solid #eef1f5; }
+  article.doc h3 { font-size: 16.5px; margin: 26px 0 10px; }
+  article.doc h4 { font-size: 15px; margin: 20px 0 8px; }
+  article.doc p { margin: 12px 0; }
+  article.doc ul, article.doc ol { margin: 12px 0; padding-left: 26px; }
+  article.doc li { margin: 5px 0; }
+  article.doc a { color: var(--accent); text-decoration: none; }
+  article.doc a:hover { text-decoration: underline; }
+  article.doc table { border-collapse: collapse; width: 100%; margin: 18px 0; font-size: 14px; display: block; overflow-x: auto; }
+  article.doc th { background: #f0f4f8; text-align: left; padding: 9px 13px; border: 1px solid var(--line); font-weight: 600; white-space: nowrap; }
+  article.doc td { padding: 9px 13px; border: 1px solid var(--line); vertical-align: top; }
+  article.doc tr:nth-child(even) td { background: #fafbfc; }
+  article.doc code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+  article.doc pre { background: var(--code-ink); color: #e6edf3; padding: 16px 18px; border-radius: 8px; overflow-x: auto; margin: 16px 0; line-height: 1.6; }
+  article.doc pre code { background: none; color: inherit; padding: 0; }
+  article.doc blockquote { border-left: 4px solid #b9cddd; background: var(--quote); margin: 16px 0; padding: 10px 16px; color: var(--ink-2); border-radius: 0 8px 8px 0; }
+  article.doc blockquote p { margin: 4px 0; }
+  article.doc img { max-width: 100%; border-radius: 8px; border: 1px solid var(--line); }
+  article.doc hr { border: none; border-top: 1px solid var(--line); margin: 28px 0; }
+  a.diagram-link {
+    display: inline-block; margin: 4px 0;
+    background: var(--accent-soft); border: 1px solid #cfe0ee; color: var(--accent);
+    border-radius: 8px; padding: 7px 16px; font-size: 13.5px; font-weight: 600;
+    text-decoration: none !important; transition: background 0.15s, border-color 0.15s;
+  }
+  a.diagram-link:hover { background: #dbeaf5; border-color: var(--accent); }
+  a.diagram-link::before { content: "打开交互式图："; font-weight: 400; }
+  footer.doc-foot { margin-top: 24px; font-size: 12.5px; color: var(--ink-2); text-align: center; }
+  @media (max-width: 640px) {
+    .wrap { padding: 20px 12px 40px; }
+    article.doc { padding: 24px 18px; }
+    article.doc h1 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="topnav">
+    <a href="../index.html">← gin-vue-admin 架构文档</a>
+    <span class="crumb">MCP 集成</span>
+  </nav>
+  <article class="doc">
+<h1 id="gin-vue-admin-mcp-mcp">gin-vue-admin MCP 服务器与客户端子系统（mcp）</h1>
+<blockquote>
+<p>本文档基于 gin-vue-admin 源码分析，覆盖 GVA 在 mark3labs/mcp-go 之上封装的 MCP 工具集、Streamable HTTP 服务、上游代理机制与独立进程托管模式。</p>
+</blockquote>
+<h2 id="1">1. 概述</h2>
+<p>GVA 的 MCP（Model Context Protocol）子系统把后台的代码生成、API/菜单/字典/权限管理能力以标准 MCP 工具的形式暴露给 AI 编辑器（Cursor、Claude 等），使大模型可以直接在 GVA 平台上完成"分析需求 → 创建包/模块 → 生成代码 → 挂权限 → 审查"的闭环。</p>
+<p>整体设计上有三点值得注意：</p>
+<ol>
+<li><strong>不重新实现业务逻辑，而是做 HTTP 代理</strong>。MCP 工具本身不直接调用 Service 层，而是把请求参数序列化成 JSON，连同调用方的 <code>x-token</code> 一起，以 HTTP 请求转发到 GVA 主服务（默认 <code>http://127.0.0.1:8888</code>）的既有 REST API 上，再把 <code>{code, data, msg}</code> 解包后返回给 MCP 客户端。这样主服务既有的 JWT + Casbin 鉴权、RBAC、统一响应格式全部复用，权限边界不被打破。</li>
+<li><strong>工具自注册</strong>。每个工具一个文件，在 <code>init()</code> 中调用 <code>RegisterTool(&amp;Xxx{})</code>；<code>NewMCPServer()</code> 启动时遍历工具注册表，一次性 <code>AddTool</code> 到 mcp-go 的 <code>MCPServer</code> 实例。</li>
+<li><strong>支持两种部署形态</strong>。既可由 <code>server/cmd/mcp/main.go</code> 独立编译为二进制（默认监听 <code>:8889</code>，路径 <code>/mcp</code>），也可在 GVA 主服务进程内由 <code>standalone_manager</code> 通过页面按钮触发 <code>go build ./cmd/mcp</code> 并 <code>exec</code> 拉起独立进程，PID、日志、配置元信息写入项目根 <code>.tmp/mcp/</code> 目录。</li>
+</ol>
+<p>核心源码路径：</p>
+<ul>
+<li>MCP 服务与工具注册：<code>server/mcp/server.go</code>、<code>server/mcp/enter.go</code></li>
+<li>鉴权上下文：<code>server/mcp/context.go</code></li>
+<li>上游 HTTP 代理：<code>server/mcp/http_client.go</code>、<code>server/mcp/autocode_http.go</code>、<code>server/mcp/dictionary_http.go</code></li>
+<li>业务工具：<code>server/mcp/api_creator.go</code>、<code>server/mcp/api_lister.go</code>、<code>server/mcp/menu_creator.go</code>、<code>server/mcp/menu_lister.go</code>、<code>server/mcp/role_api_assigner.go</code>、<code>server/mcp/dictionary_generator.go</code>、<code>server/mcp/dictionary_query.go</code>、<code>server/mcp/requirement_analyzer.go</code>、<code>server/mcp/gva_analyze.go</code>、<code>server/mcp/gva_execute.go</code>、<code>server/mcp/gva_review.go</code></li>
+<li>独立进程托管：<code>server/mcp/standalone_manager.go</code>、<code>server/mcp/process_utils_unix.go</code>、<code>server/mcp/process_utils_windows.go</code></li>
+<li>MCP 客户端封装：<code>server/mcp/client/client.go</code></li>
+<li>独立进程入口：<code>server/cmd/mcp/main.go</code>、<code>server/cmd/mcp/config.go</code>、<code>server/cmd/mcp/logger.go</code></li>
+<li>配置结构：<code>server/config/mcp.go</code></li>
+<li>全局句柄：<code>server/global/global.go</code>（<code>GVA_MCP_SERVER</code>）</li>
+</ul>
+<h2 id="2">2. 功能清单</h2>
+<table>
+<thead>
+<tr>
+<th>功能</th>
+<th>说明</th>
+<th>源码路径</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MCP 服务器构造</td>
+<td>基于 mark3labs/mcp-go <code>NewMCPServer</code>，按配置注入 Name/Version，并把全局句柄写入 <code>global.GVA_MCP_SERVER</code></td>
+<td><code>server/mcp/server.go</code></td>
+</tr>
+<tr>
+<td>Streamable HTTP 挂载</td>
+<td>在 <code>http.ServeMux</code> 上按 <code>config.MCP.Path</code>（默认 <code>/mcp</code>）挂载 MCP handler，并额外提供 <code>/health</code> 健康检查</td>
+<td><code>server/mcp/server.go</code></td>
+</tr>
+<tr>
+<td>工具接口契约</td>
+<td><code>McpTool</code> 接口要求 <code>New() mcp.Tool</code> 与 <code>Handle(ctx, CallToolRequest) (*CallToolResult, error)</code></td>
+<td><code>server/mcp/enter.go</code></td>
+</tr>
+<tr>
+<td>工具自注册与批量装载</td>
+<td><code>toolRegister</code> map + <code>RegisterTool</code>/<code>RegisterAllTools</code>，各工具文件 <code>init()</code> 自动注册</td>
+<td><code>server/mcp/enter.go</code></td>
+</tr>
+<tr>
+<td>调用方 token 提取</td>
+<td>从请求头按 <code>x-token</code>/<code>token</code>/<code>authorization</code>(Bearer) 顺序提取鉴权 token 注入 context</td>
+<td><code>server/mcp/context.go</code></td>
+</tr>
+<tr>
+<td>上游 HTTP 泛型客户端</td>
+<td><code>getUpstream/postUpstream/deleteUpstream</code> 泛型封装，转发 token、超时控制、<code>{code,data,msg}</code> 解包与错误归一化</td>
+<td><code>server/mcp/http_client.go</code></td>
+</tr>
+<tr>
+<td>AutoCode 上游封装</td>
+<td>对 <code>/autoCode/getPackage</code>、<code>/createPackage</code>、<code>/createTemp</code>、<code>/delPackage</code>、<code>/getSysHistory</code>、<code>/delSysHistory</code> 的类型化封装</td>
+<td><code>server/mcp/autocode_http.go</code></td>
+</tr>
+<tr>
+<td>字典上游封装</td>
+<td>对 <code>/sysDictionary/*</code>、<code>/sysDictionaryDetail/*</code> 的查询/创建封装</td>
+<td><code>server/mcp/dictionary_http.go</code></td>
+</tr>
+<tr>
+<td>创建 API 工具 <code>create_api</code></td>
+<td>校验后调用 <code>/api/createApi</code>，并先查 <code>/api/getApiList</code> 去重</td>
+<td><code>server/mcp/api_creator.go</code></td>
+</tr>
+<tr>
+<td>列举 API 工具 <code>list_all_apis</code></td>
+<td>调 <code>/api/getAllApis</code> + <code>/autoCode/mcpRoutes</code> 返回全量 API 与动态路由</td>
+<td><code>server/mcp/api_lister.go</code></td>
+</tr>
+<tr>
+<td>创建菜单工具 <code>create_menu</code></td>
+<td>调 <code>/menu/addBaseMenu</code>，并通过 <code>/menu/getMenuList</code> 校验父子关系</td>
+<td><code>server/mcp/menu_creator.go</code></td>
+</tr>
+<tr>
+<td>列举菜单工具 <code>list_all_menus</code></td>
+<td>调 <code>/menu/getMenuList</code> 返回菜单树供前端路由编写</td>
+<td><code>server/mcp/menu_lister.go</code></td>
+</tr>
+<tr>
+<td>角色授权工具 <code>assign_api_to_role</code></td>
+<td>先 <code>/casbin/getPolicyPathByAuthorityId</code> 取现状，再 <code>/casbin/updateCasbin</code> 追加授权（不覆盖）</td>
+<td><code>server/mcp/role_api_assigner.go</code></td>
+</tr>
+<tr>
+<td>生成字典工具 <code>generate_dictionary_options</code></td>
+<td>按类型自动生成字典项并创建字典与详情</td>
+<td><code>server/mcp/dictionary_generator.go</code></td>
+</tr>
+<tr>
+<td>查询字典工具 <code>query_dictionaries</code></td>
+<td>按类型精确查询或返回全部字典，供 AI 生成表单时使用</td>
+<td><code>server/mcp/dictionary_query.go</code></td>
+</tr>
+<tr>
+<td>需求分析工具 <code>requirement_analyzer</code></td>
+<td>文档标注为所有 MCP 工具的首选入口，输出模块/包设计建议</td>
+<td><code>server/mcp/requirement_analyzer.go</code></td>
+</tr>
+<tr>
+<td>GVA 现状分析 <code>gva_analyze</code></td>
+<td>汇总有效包/模块，判断需求是否需要新建包/模块/字典，并清理空包</td>
+<td><code>server/mcp/gva_analyze.go</code></td>
+</tr>
+<tr>
+<td>代码生成执行 <code>gva_execute</code></td>
+<td>直接调用 <code>/autoCode/createTemp</code> 执行代码生成，无需人工确认</td>
+<td><code>server/mcp/gva_execute.go</code></td>
+</tr>
+<tr>
+<td>生成结果审查 <code>gva_review</code></td>
+<td>在 <code>gva_execute</code> 之后对产物与用户需求做对照审查</td>
+<td><code>server/mcp/gva_review.go</code></td>
+</tr>
+<tr>
+<td>独立进程托管</td>
+<td>页面触发时 <code>go build -o .tmp/mcp/gva-mcp-standalone ./cmd/mcp</code>，<code>exec</code> 拉起，PID 元信息持久化</td>
+<td><code>server/mcp/standalone_manager.go</code></td>
+</tr>
+<tr>
+<td>托管进程健康检查</td>
+<td><code>GET /health</code> 2s 超时；启动等待 20s、停止等待 8s、构建超时 2min</td>
+<td><code>server/mcp/standalone_manager.go</code></td>
+</tr>
+<tr>
+<td>跨平台进程工具</td>
+<td>Unix/Windows 两套 <code>processExists</code>/<code>terminateProcess</code> 实现</td>
+<td><code>server/mcp/process_utils_unix.go</code>、<code>server/mcp/process_utils_windows.go</code></td>
+</tr>
+<tr>
+<td>MCP 客户端封装</td>
+<td><code>NewStreamableHttpClient</code> + Initialize 握手 + ServerName 校验</td>
+<td><code>server/mcp/client/client.go</code></td>
+</tr>
+<tr>
+<td>独立进程入口</td>
+<td>加载 <code>-config</code> 指定的 yaml，初始化日志，启动 Streamable HTTP 服务</td>
+<td><code>server/cmd/mcp/main.go</code>、<code>server/cmd/mcp/config.go</code></td>
+</tr>
+<tr>
+<td>MCP 配置结构</td>
+<td>Name/Version/Path/Addr/BaseURL/UpstreamBaseURL/AuthHeader/RequestTimeout，含废弃字段向后兼容</td>
+<td><code>server/config/mcp.go</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="3">3. 解决的问题</h2>
+<table>
+<thead>
+<tr>
+<th>用户痛点</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AI 编辑器无法直接读写 GVA 的 API/菜单/字典/代码生成能力</td>
+<td>把这些能力包装成标准 MCP Tool，Cursor 等客户端按协议自动发现与调用</td>
+</tr>
+<tr>
+<td>在 MCP 层重新实现业务逻辑会与主服务产生两份代码</td>
+<td>所有工具经 HTTP 代理打主服务既有 REST API，业务逻辑只有一份</td>
+</tr>
+<tr>
+<td>MCP 服务本身需要鉴权，但又不能绕过主服务的 RBAC</td>
+<td>透传调用方 <code>x-token</code>/Bearer 到主服务，主服务继续走 JWT+Casbin</td>
+</tr>
+<tr>
+<td>用户希望在网页上一键启停 MCP 独立进程，而不是手动敲命令行</td>
+<td><code>standalone_manager</code> 自动 <code>go build</code> + <code>exec</code> + 健康检查 + 元信息落盘</td>
+</tr>
+<tr>
+<td>大模型代码生成需要"分析→生成→审查"三段式工作流</td>
+<td><code>requirement_analyzer</code> / <code>gva_analyze</code> / <code>gva_execute</code> / <code>gva_review</code> 工具按流水线组织，工具描述中显式约定调用顺序</td>
+</tr>
+<tr>
+<td>跨平台部署托管进程</td>
+<td><code>process_utils_unix.go</code> / <code>process_utils_windows.go</code> 分别实现进程存在性判断与终止</td>
+</tr>
+</tbody>
+</table>
+<h2 id="4">4. 系统边界</h2>
+<p><strong>In-Scope（本仓库 <code>server/mcp/</code>、<code>server/cmd/mcp/</code>、<code>server/config/mcp.go</code> 内实现）</strong>：</p>
+<ul>
+<li>MCP 服务器构造、Streamable HTTP 挂载、工具自注册与分发</li>
+<li>调用方 token 提取与 context 传递</li>
+<li>上游 HTTP 泛型代理与各业务工具对主服务 REST API 的类型化封装</li>
+<li>独立进程的构建、启停、健康检查与元信息持久化</li>
+<li>MCP 客户端握手封装</li>
+</ul>
+<p><strong>Out-of-Scope（外部系统 / 第三方组件，不在本仓库源码内）</strong>：</p>
+<ul>
+<li><code>mark3labs/mcp-go</code>：MCP 协议框架（server / client / Streamable HTTP transport）——不在本仓库源码内</li>
+<li>GVA 主服务进程（默认 <code>:8888</code>）：MCP 工具的所有写操作最终都代理到它的 <code>/api</code>、<code>/menu</code>、<code>/autoCode</code>、<code>/casbin</code>、<code>/sysDictionary</code> 等路由，其内部 Router-&gt;API-&gt;Service-&gt;Model 链路属于主服务范畴，不在本子系统内</li>
+<li>AI 编辑器 / LLM 客户端（Cursor、Claude Desktop 等）：MCP 协议的发起方，不在本仓库源码内</li>
+<li>JWT / Casbin 中间件：由主服务提供，本子系统仅透传 token</li>
+<li>Go 工具链（<code>go build</code>）：<code>standalone_manager</code> 在托管构建时依赖本机 Go 环境，不在本仓库源码内</li>
+</ul>
+<h2 id="5">5. 架构图</h2>
+<p><a class="diagram-link" href="mcp-architecture.html" target="_blank" rel="noopener">MCP 子系统架构图</a></p>
+<p>图中左侧是 AI 编辑器客户端，通过 Streamable HTTP 调用本仓库 <code>server/mcp</code> 包：<code>mcp-http</code> 先经 <code>auth-context</code> 把调用方 token 注入 context，再由工具注册表把请求按工具名分发到 12 个业务工具；工具统一经 <code>http-proxy</code> 把参数序列化为 JSON、带上 token，以 HTTP 调用 GVA 主服务 <code>:8888</code> 的既有 REST API，并把 <code>{code,data,msg}</code> 解包后回传给 MCP 客户端。右上是独立进程托管形态：<code>standalone-mgr</code> 在页面触发时 <code>go build ./cmd/mcp</code> 并 <code>exec</code> 出 <code>cmd/mcp</code> 独立进程，二者共用同一套 <code>NewStreamableHTTPServer</code> 代码。</p>
+<h2 id="6">6. 时序图</h2>
+<p><a class="diagram-link" href="mcp-sequence.html" target="_blank" rel="noopener">MCP 工具调用时序图</a></p>
+<p>时序图以一次 <code>create_api</code> 工具调用为例：阶段一 AI 客户端向 <code>/mcp</code> 发起 <code>CallTool</code> 并携带 <code>x-token</code>；阶段二 MCP 服务按工具名分发到 <code>create_api</code> 工具，工具内部通过 <code>http_client</code> 调用主服务 <code>POST /api/createApi</code>，主服务返回统一响应；阶段三代理解包 <code>{code,data,msg}</code>、校验 <code>code==0</code>，工具把结果封装为 MCP <code>CallToolResult</code> 回传客户端。鉴权始终在主服务侧完成，MCP 自身只做透传。</p>
+  </article>
+  <footer class="doc-foot">gin-vue-admin 架构文档 · 渲染文档</footer>
+</div>
+</body>
+</html>

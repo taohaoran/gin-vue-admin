@@ -1,0 +1,49 @@
+# GitHub Pages 部署 workflow（GitHub Actions 发布源）
+# 触发分支: feat-docs-20260911，部署目录: docs/architecture
+name: Deploy architecture docs to GitHub Pages
+
+on:
+  push:
+    branches: [feat-docs-20260911]
+    paths:
+      - 'docs/architecture/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build rendered doc pages
+        run: |
+          pip install --quiet markdown
+          python3 scripts/build-docs-html.py docs/architecture --site-name "gin-vue-admin 架构文档" --group-label "auth=认证与授权|admin=系统管理|codegen=代码生成|storage=文件存储|extension=插件体系|mcp=MCP 集成|ops=运维|example=示例业务"
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/architecture
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

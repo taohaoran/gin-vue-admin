@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "gin-vue-admin 定时任务与运行运维子系统架构",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "viewBox": [1280, 680],
+    "views": [
+      { "id": "main", "label": "请求处理链", "focus": ["client", "recovery-mw", "logger-mw", "limit-mw", "timeout-mw", "biz"], "note": "请求进入后依次经过 panic 恢复、日志、限流、超时四个中间件" }
+    ]
+  },
+  "components": [
+    { "id": "client", "type": "external", "label": "请求来源", "sublabel": "浏览器 / API 调用方", "pos": [30, 220], "size": [130, 70] },
+    { "id": "recovery-mw", "type": "backend", "label": "GinRecovery", "sublabel": "panic 恢复", "pos": [210, 220], "size": [140, 70] },
+    { "id": "logger-mw", "type": "backend", "label": "请求日志中间件", "sublabel": "middleware/logger.go", "pos": [400, 220], "size": [150, 70] },
+    { "id": "limit-mw", "type": "backend", "label": "IP 限流中间件", "sublabel": "middleware/limit_ip.go", "pos": [600, 220], "size": [150, 70] },
+    { "id": "timeout-mw", "type": "backend", "label": "超时中间件", "sublabel": "middleware/timeout.go", "pos": [800, 220], "size": [150, 70] },
+    { "id": "biz", "type": "backend", "label": "业务 Handler", "sublabel": "api/v1", "pos": [1000, 220], "size": [150, 70] },
+    { "id": "cron", "type": "backend", "label": "定时调度器", "sublabel": "GVA_Timer (robfig/cron)", "pos": [400, 460], "size": [170, 60], "tag": "后台任务" },
+    { "id": "clear-task", "type": "backend", "label": "ClearTable 任务", "sublabel": "task/clearTable.go", "pos": [620, 460], "size": [160, 60] },
+    { "id": "db", "type": "database", "label": "业务数据库", "sublabel": "GORM", "pos": [850, 460], "size": [150, 60] },
+    { "id": "redis", "type": "database", "label": "Redis", "sublabel": "限流计数", "pos": [600, 60], "size": [150, 60] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "运行时中间件链（gin.Engine / 路由组）", "wraps": ["recovery-mw", "logger-mw", "limit-mw", "timeout-mw", "biz"] },
+    { "kind": "region", "label": "后台定时任务", "wraps": ["cron", "clear-task"] }
+  ],
+  "connections": [
+    { "id": "c-r", "from": "client", "to": "recovery-mw", "label": "HTTP 请求", "variant": "emphasis" },
+    { "id": "r-l", "from": "recovery-mw", "to": "logger-mw", "label": "" },
+    { "id": "l-li", "from": "logger-mw", "to": "limit-mw", "label": "" },
+    { "id": "li-t", "from": "limit-mw", "to": "timeout-mw", "label": "" },
+    { "id": "t-b", "from": "timeout-mw", "to": "biz", "label": "放行", "variant": "emphasis", "labelDy": 40 },
+    { "id": "li-redis", "from": "limit-mw", "to": "redis", "label": "INCR/EXPIRE", "variant": "dashed", "fromSide": "top", "toSide": "bottom" },
+    { "id": "cron-clr", "from": "cron", "to": "clear-task", "label": "@daily 触发", "labelDy": 54 },
+    { "id": "clr-db", "from": "clear-task", "to": "db", "label": "DELETE 清理" }
+  ],
+  "cards": [
+    { "dot": "emerald", "title": "中间件链", "items": ["GinRecovery 捕获 panic 并入库", "Logger 记录路径/耗时/IP", "LimitWithTime 按 IP 限流", "Timeout 超时返回 504"] },
+    { "dot": "amber", "title": "定时清理", "items": ["GVA_Timer 基于 robfig/cron", "每日清理操作记录与 JWT 黑名单", "清理间隔硬编码在 task/clearTable.go"] }
+  ]
+}

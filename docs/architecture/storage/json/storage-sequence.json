@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "文件上传全流程时序",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "viewBox": [1200, 720],
+    "column_fit": "spread"
+  },
+  "participants": [
+    { "id": "frontend", "type": "external", "label": "前端 Vue3", "sublabel": "浏览器" },
+    { "id": "api", "type": "backend", "label": "FileUploadApi", "sublabel": "参数/校验" },
+    { "id": "svc", "type": "backend", "label": "FileUploadService", "sublabel": "编排" },
+    { "id": "oss", "type": "backend", "label": "OSS 驱动", "sublabel": "NewOss() 工厂" },
+    { "id": "storage", "type": "cloud", "label": "本地磁盘/云 bucket", "sublabel": "外部存储" },
+    { "id": "db", "type": "database", "label": "GORM 文件记录", "sublabel": "exa_file_upload..." }
+  ],
+  "segments": [
+    { "from": 150, "to": 240, "label": "请求接收与驱动选择" },
+    { "from": 240, "to": 410, "label": "存储驱动写入对象" },
+    { "from": 420, "to": 590, "label": "记录落库与响应" }
+  ],
+  "messages": [
+    { "id": "m1", "from": "frontend", "to": "api", "y": 160, "label": "POST /fileUploadAndDownload/upload (multipart)", "variant": "emphasis" },
+    { "id": "m2", "from": "api", "to": "svc", "y": 205, "label": "UploadFile(header, noSave, classId)" },
+    { "id": "m3", "from": "svc", "to": "oss", "y": 250, "label": "NewOss() 按 oss-type 选驱动", "variant": "emphasis" },
+    { "id": "m4", "from": "oss", "to": "storage", "y": 300, "label": "UploadFile(file) 写字节", "variant": "emphasis" },
+    { "id": "m5", "from": "storage", "to": "oss", "y": 350, "label": "(url, key)", "variant": "return" },
+    { "id": "m6", "from": "oss", "to": "svc", "y": 395, "label": "(filePath, key)", "variant": "return" },
+    { "id": "m7", "from": "svc", "to": "db", "y": 440, "label": "Create 文件记录(url/name/tag/key)", "variant": "emphasis" },
+    { "id": "m8", "from": "db", "to": "svc", "y": 485, "label": "OK", "variant": "return" },
+    { "id": "m9", "from": "svc", "to": "api", "y": 530, "label": "file record", "variant": "return" },
+    { "id": "m10", "from": "api", "to": "frontend", "y": 570, "label": "{code,data,msg} 文件详情", "variant": "emphasis" }
+  ],
+  "activations": [
+    { "participant": "api", "from": 160, "to": 580, "type": "backend" },
+    { "participant": "svc", "from": 205, "to": 545, "type": "backend" },
+    { "participant": "oss", "from": 250, "to": 400, "type": "backend" },
+    { "participant": "storage", "from": 300, "to": 350, "type": "cloud" },
+    { "participant": "db", "from": 440, "to": 485, "type": "database" }
+  ]
+}

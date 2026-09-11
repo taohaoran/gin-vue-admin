@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "AI 工作流 LLM 调用链时序",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "viewBox": [1280, 780],
+    "column_fit": "spread"
+  },
+  "participants": [
+    { "id": "frontend", "type": "external", "label": "前端管理台", "sublabel": "Vue3" },
+    { "id": "api", "type": "backend", "label": "AutoCodeApi", "sublabel": "SSE 代理" },
+    { "id": "svc-llm", "type": "backend", "label": "autoCodeLlm", "sublabel": "路径拼接/转发" },
+    { "id": "upstream", "type": "cloud", "label": "上游大模型/Dify", "sublabel": "AiPath(外部)" },
+    { "id": "svc-session", "type": "backend", "label": "aiWorkflowSession", "sublabel": "会话持久化" },
+    { "id": "db", "type": "database", "label": "GORM 元数据库", "sublabel": "会话表" }
+  ],
+  "segments": [
+    { "from": 170, "to": 260, "label": "请求路由与路径拼接" },
+    { "from": 260, "to": 410, "label": "上游 SSE 流式转发" },
+    { "from": 420, "to": 680, "label": "AI 工作流会话落库" }
+  ],
+  "messages": [
+    { "id": "m1", "from": "frontend", "to": "api", "y": 160, "label": "POST /autoCode/llmAutoSSE", "variant": "emphasis" },
+    { "id": "m2", "from": "api", "to": "svc-llm", "y": 205, "label": "LLMAutoStream(ctx, llm)" },
+    { "id": "m3", "from": "svc-llm", "to": "upstream", "y": 250, "label": "POST {AiPath}/{mode}  Accept: text/event-stream", "variant": "emphasis" },
+    { "id": "m4", "from": "upstream", "to": "svc-llm", "y": 305, "label": "SSE 块逐块返回 / [DONE]", "variant": "return" },
+    { "id": "m5", "from": "svc-llm", "to": "api", "y": 355, "label": "*http.Response(流式)", "variant": "return" },
+    { "id": "m6", "from": "api", "to": "frontend", "y": 395, "label": "逐块转发 event: message / done", "variant": "emphasis" },
+    { "id": "m7", "from": "frontend", "to": "api", "y": 450, "label": "POST /autoCode/saveAIWorkflowSession" },
+    { "id": "m8", "from": "api", "to": "svc-session", "y": 490, "label": "Save(uid, Upsert)" },
+    { "id": "m9", "from": "svc-session", "to": "db", "y": 535, "label": "INSERT sys_ai_workflow_sessions", "variant": "emphasis" },
+    { "id": "m10", "from": "db", "to": "svc-session", "y": 575, "label": "OK", "variant": "return" },
+    { "id": "m11", "from": "svc-session", "to": "api", "y": 615, "label": "session", "variant": "return" },
+    { "id": "m12", "from": "api", "to": "frontend", "y": 655, "label": "{code,data,msg}", "variant": "return" }
+  ],
+  "activations": [
+    { "participant": "api", "from": 160, "to": 400, "type": "backend" },
+    { "participant": "svc-llm", "from": 205, "to": 360, "type": "backend" },
+    { "participant": "upstream", "from": 250, "to": 305, "type": "cloud" },
+    { "participant": "svc-session", "from": 490, "to": 630, "type": "backend" },
+    { "participant": "db", "from": 535, "to": 575, "type": "database" }
+  ]
+}

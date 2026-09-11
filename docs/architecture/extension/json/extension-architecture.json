@@ -1,0 +1,245 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "GVA 插件体系架构图",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "viewBox": [1300, 800],
+    "views": [
+      {
+        "id": "main",
+        "label": "插件注册主路径",
+        "focus": ["gva-engine", "install-plugin", "v2-registry", "announcement", "plugin-tool", "gorm-db"],
+        "note": "启动 -> InstallPlugin -> 注册表 -> 各插件自举 -> 元数据入库 -> 路由挂载到 Gin 引擎"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "gva-engine",
+      "type": "backend",
+      "label": "Gin 引擎",
+      "sublabel": "initialize/router.go",
+      "pos": [40, 360],
+      "size": [150, 64],
+      "tag": "启动入口"
+    },
+    {
+      "id": "install-plugin",
+      "type": "backend",
+      "label": "InstallPlugin",
+      "sublabel": "initialize/plugin.go",
+      "pos": [280, 300],
+      "size": [160, 64],
+      "tag": "编排入口"
+    },
+    {
+      "id": "db-notifier",
+      "type": "backend",
+      "label": "DBReadyNotifier",
+      "sublabel": "plugin_notifier.go",
+      "pos": [280, 480],
+      "size": [160, 64],
+      "tag": "异步就绪"
+    },
+    {
+      "id": "v1-email",
+      "type": "backend",
+      "label": "邮件插件 v1",
+      "sublabel": "plugin/email",
+      "pos": [540, 120],
+      "size": [150, 64],
+      "tag": "手动构造"
+    },
+    {
+      "id": "v2-registry",
+      "type": "backend",
+      "label": "v2 插件注册表",
+      "sublabel": "utils/plugin/v2",
+      "pos": [540, 300],
+      "size": [150, 64],
+      "tag": "init 自注册"
+    },
+    {
+      "id": "announcement",
+      "type": "backend",
+      "label": "公告插件 v2",
+      "sublabel": "plugin/announcement",
+      "pos": [820, 80],
+      "size": [160, 64],
+      "tag": "示例插件"
+    },
+    {
+      "id": "auto",
+      "type": "backend",
+      "label": "自动代码插件 v2",
+      "sublabel": "plugin/auto",
+      "pos": [820, 240],
+      "size": [160, 64],
+      "tag": "AI 代码生成"
+    },
+    {
+      "id": "auth-middleware",
+      "type": "security",
+      "label": "JWT + Casbin",
+      "sublabel": "middleware",
+      "pos": [820, 410],
+      "size": [160, 64],
+      "tag": "鉴权"
+    },
+    {
+      "id": "plugin-tool",
+      "type": "backend",
+      "label": "元数据注册工具",
+      "sublabel": "plugin-tool/utils",
+      "pos": [1080, 120],
+      "size": [160, 64],
+      "tag": "API/菜单/字典"
+    },
+    {
+      "id": "gorm-db",
+      "type": "database",
+      "label": "GORM 数据库",
+      "sublabel": "MySQL 等",
+      "pos": [1080, 480],
+      "size": [150, 64],
+      "tag": "sys_api/menu/dict"
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "插件体系运行时（本仓库 server/ 内）",
+      "wraps": ["install-plugin", "db-notifier", "v2-registry"]
+    },
+    {
+      "kind": "security-group",
+      "label": "受保护的私有路由",
+      "wraps": ["auth-middleware"]
+    }
+  ],
+  "connections": [
+    {
+      "id": "engine-install",
+      "from": "gva-engine",
+      "to": "install-plugin",
+      "label": "Initialize 调用",
+      "variant": "emphasis"
+    },
+    {
+      "id": "install-notifier",
+      "from": "install-plugin",
+      "to": "db-notifier",
+      "label": "DB 未就绪时订阅",
+      "variant": "dashed",
+      "labelDy": 28
+    },
+    {
+      "id": "notifier-install",
+      "from": "db-notifier",
+      "to": "install-plugin",
+      "label": "DB 就绪回调",
+      "variant": "dashed",
+      "labelDy": -28
+    },
+    {
+      "id": "install-email",
+      "from": "install-plugin",
+      "to": "v1-email",
+      "label": "bizPluginV1 手动 Register",
+      "variant": "default"
+    },
+    {
+      "id": "install-registry",
+      "from": "install-plugin",
+      "to": "v2-registry",
+      "label": "bizPluginV2 取 Registered()",
+      "variant": "emphasis",
+      "labelAt": [490, 378]
+    },
+    {
+      "id": "registry-announce",
+      "from": "v2-registry",
+      "to": "announcement",
+      "label": "遍历注册",
+      "variant": "default"
+    },
+    {
+      "id": "registry-auto",
+      "from": "v2-registry",
+      "to": "auto",
+      "label": "遍历注册",
+      "variant": "default"
+    },
+    {
+      "id": "announce-tool",
+      "from": "announcement",
+      "to": "plugin-tool",
+      "label": "RegisterApis/Menus/Dict",
+      "variant": "default",
+      "labelAt": [1030, 198]
+    },
+    {
+      "id": "auto-tool",
+      "from": "auto",
+      "to": "plugin-tool",
+      "label": "RegisterApis/Menus/Dict",
+      "variant": "default",
+      "labelDy": 22
+    },
+    {
+      "id": "tool-db",
+      "from": "plugin-tool",
+      "to": "gorm-db",
+      "label": "FirstOrCreate 幂等写入",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "auto-auth",
+      "from": "auto",
+      "to": "auth-middleware",
+      "label": "两插件 private 路由均挂 JWT+Casbin",
+      "variant": "security",
+      "labelDy": 24
+    },
+    {
+      "id": "email-engine",
+      "from": "v1-email",
+      "to": "gva-engine",
+      "label": "挂载 /email 路由组",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "两代插件接口并存",
+      "items": [
+        "v1：Register(*gin.RouterGroup)+RouterPath()，以邮件插件为代表",
+        "v2：Register(*gin.Engine)，init() 自注册到全局注册表",
+        "blank import server/plugin/register.go 触发 v2 插件 init"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "自举式元数据安装",
+      "items": [
+        "插件 Register 内依次执行 Api/Menu/Dictionary/Gorm/Router",
+        "plugin-tool 用 FirstOrCreate 保证重复启动幂等",
+        "菜单按首项为父、其余挂子的方式建立层级"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "首次安装的异步引导",
+      "items": [
+        "数据库未初始化时 InstallPlugin 不立即注册",
+        "DBReadyNotifier 订阅 service 层 DB 就绪回调",
+        "就绪后统一注册插件并重刷 GVA_ROUTERS"
+      ]
+    }
+  ]
+}

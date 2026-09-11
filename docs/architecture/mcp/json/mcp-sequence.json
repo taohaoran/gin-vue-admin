@@ -1,0 +1,156 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "GVA MCP 工具调用时序图",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "viewBox": [1180, 760]
+  },
+  "participants": [
+    {
+      "id": "ai-client",
+      "type": "external",
+      "label": "AI 客户端",
+      "sublabel": "Cursor 等"
+    },
+    {
+      "id": "mcp-server",
+      "type": "backend",
+      "label": "MCP 服务",
+      "sublabel": "Streamable HTTP"
+    },
+    {
+      "id": "tool",
+      "type": "backend",
+      "label": "具体工具",
+      "sublabel": "如 create_api"
+    },
+    {
+      "id": "proxy",
+      "type": "backend",
+      "label": "上游代理",
+      "sublabel": "http_client.go"
+    },
+    {
+      "id": "gva-main",
+      "type": "backend",
+      "label": "GVA 主服务",
+      "sublabel": ":8888 API"
+    }
+  ],
+  "segments": [
+    {
+      "from": 150,
+      "to": 240,
+      "label": "阶段一：MCP 协议调用"
+    },
+    {
+      "from": 260,
+      "to": 420,
+      "label": "阶段二：转发到 GVA 主服务"
+    },
+    {
+      "from": 440,
+      "to": 620,
+      "label": "阶段三：结果回传"
+    }
+  ],
+  "messages": [
+    {
+      "id": "m1",
+      "from": "ai-client",
+      "to": "mcp-server",
+      "y": 160,
+      "label": "POST /mcp CallTool(create_api) 携带 x-token",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m2",
+      "from": "mcp-server",
+      "to": "tool",
+      "y": 220,
+      "label": "按工具名分发到对应 Handle",
+      "variant": "default"
+    },
+    {
+      "id": "m3",
+      "from": "tool",
+      "to": "proxy",
+      "y": 280,
+      "label": "postUpstream(\"/api/createApi\", body)",
+      "variant": "default"
+    },
+    {
+      "id": "m4",
+      "from": "proxy",
+      "to": "gva-main",
+      "y": 340,
+      "label": "POST /api/createApi，注入 x-token 头",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m5",
+      "from": "gva-main",
+      "to": "proxy",
+      "y": 400,
+      "label": "{code:0, data, msg} 统一响应",
+      "variant": "return"
+    },
+    {
+      "id": "m6",
+      "from": "proxy",
+      "to": "tool",
+      "y": 470,
+      "label": "校验 code==0，解包 data",
+      "variant": "return"
+    },
+    {
+      "id": "m7",
+      "from": "tool",
+      "to": "mcp-server",
+      "y": 540,
+      "label": "返回 CallToolResult（MCP 内容块）",
+      "variant": "default"
+    },
+    {
+      "id": "m8",
+      "from": "mcp-server",
+      "to": "ai-client",
+      "y": 600,
+      "label": "MCP 工具调用结果 JSON",
+      "variant": "return"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "mcp-server",
+      "from": 160,
+      "to": 240,
+      "type": "backend"
+    },
+    {
+      "participant": "tool",
+      "from": 220,
+      "to": 540,
+      "type": "backend"
+    },
+    {
+      "participant": "proxy",
+      "from": 280,
+      "to": 470,
+      "type": "backend"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "鉴权透传",
+      "items": [
+        "MCP 自身不校验账号，只透传调用方 token",
+        "上游主服务仍走 JWT+Casbin，权限边界不变",
+        "未携带 token 直接报错：缺少 MCP 鉴权请求头"
+      ]
+    }
+  ]
+}

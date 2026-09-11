@@ -1,0 +1,207 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "GVA MCP 服务器与客户端架构图",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "viewBox": [1320, 820],
+    "views": [
+      {
+        "id": "main",
+        "label": "工具调用主路径",
+        "focus": ["ai-client", "mcp-http", "tools", "http-proxy", "gva-main"],
+        "note": "AI 客户端 -> Streamable HTTP -> 工具 -> 上游 HTTP 代理 -> GVA 主服务 API"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "ai-client",
+      "type": "external",
+      "label": "AI 编辑器客户端",
+      "sublabel": "Cursor / Claude 等",
+      "pos": [40, 320],
+      "size": [160, 64],
+      "tag": "MCP 协议发起方"
+    },
+    {
+      "id": "mcp-http",
+      "type": "backend",
+      "label": "Streamable HTTP 服务",
+      "sublabel": "mcp/server.go",
+      "pos": [290, 320],
+      "size": [170, 64],
+      "tag": ":8889/mcp"
+    },
+    {
+      "id": "tool-registry",
+      "type": "backend",
+      "label": "工具注册表",
+      "sublabel": "mcp/enter.go",
+      "pos": [560, 120],
+      "size": [160, 64],
+      "tag": "init 自注册"
+    },
+    {
+      "id": "tools",
+      "type": "backend",
+      "label": "12 个业务工具",
+      "sublabel": "api/menu/autoCode/gva_*",
+      "pos": [560, 320],
+      "size": [160, 64],
+      "tag": "Mark3Labs MCP"
+    },
+    {
+      "id": "auth-context",
+      "type": "security",
+      "label": "Token 上下文注入",
+      "sublabel": "mcp/context.go",
+      "pos": [560, 520],
+      "size": [160, 64],
+      "tag": "x-token/Bearer"
+    },
+    {
+      "id": "http-proxy",
+      "type": "backend",
+      "label": "上游 HTTP 代理",
+      "sublabel": "mcp/http_client.go",
+      "pos": [830, 320],
+      "size": [170, 64],
+      "tag": "{code,data,msg}"
+    },
+    {
+      "id": "gva-main",
+      "type": "backend",
+      "label": "GVA 主服务",
+      "sublabel": ":8888 业务 API",
+      "pos": [1110, 320],
+      "size": [160, 64],
+      "tag": "Router->API->Service"
+    },
+    {
+      "id": "standalone-mgr",
+      "type": "backend",
+      "label": "独立进程托管器",
+      "sublabel": "mcp/standalone_manager.go",
+      "pos": [830, 120],
+      "size": [170, 64],
+      "tag": "页面启停"
+    },
+    {
+      "id": "standalone-proc",
+      "type": "external",
+      "label": "cmd/mcp 独立进程",
+      "sublabel": "server/cmd/mcp",
+      "pos": [1110, 120],
+      "size": [160, 64],
+      "tag": "独立二进制"
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "本仓库 server/mcp 包",
+      "wraps": ["mcp-http", "tool-registry", "tools", "auth-context", "http-proxy", "standalone-mgr"]
+    },
+    {
+      "kind": "security-group",
+      "label": "鉴权上下文",
+      "wraps": ["auth-context"]
+    }
+  ],
+  "connections": [
+    {
+      "id": "client-http",
+      "from": "ai-client",
+      "to": "mcp-http",
+      "label": "Streamable HTTP /mcp",
+      "variant": "emphasis",
+      "labelAt": [245, 398]
+    },
+    {
+      "id": "http-auth",
+      "from": "mcp-http",
+      "to": "auth-context",
+      "label": "WithHTTPContextFunc 提取 token",
+      "variant": "security",
+      "labelDy": 24
+    },
+    {
+      "id": "http-registry",
+      "from": "mcp-http",
+      "to": "tool-registry",
+      "label": "RegisterAllTools -> AddTool",
+      "variant": "default"
+    },
+    {
+      "id": "registry-tools",
+      "from": "tool-registry",
+      "to": "tools",
+      "label": "按工具名路由到 Handle",
+      "variant": "default",
+      "labelDy": 24
+    },
+    {
+      "id": "tools-proxy",
+      "from": "tools",
+      "to": "http-proxy",
+      "label": "get/post/deleteUpstream",
+      "variant": "emphasis",
+      "labelAt": [775, 398]
+    },
+    {
+      "id": "proxy-upstream",
+      "from": "http-proxy",
+      "to": "gva-main",
+      "label": "转发 token，调 /api /menu /autoCode /casbin /sysDictionary",
+      "variant": "emphasis",
+      "labelAt": [1055, 398]
+    },
+    {
+      "id": "upstream-return",
+      "from": "gva-main",
+      "to": "http-proxy",
+      "label": "{code,data,msg} 解包",
+      "variant": "dashed",
+      "labelAt": [1055, 290]
+    },
+    {
+      "id": "mgr-proc",
+      "from": "standalone-mgr",
+      "to": "standalone-proc",
+      "label": "go build ./cmd/mcp + exec 启动",
+      "variant": "default",
+      "labelAt": [1055, 198]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "工具自注册机制",
+      "items": [
+        "每个工具文件 init() 调 RegisterTool(&Xxx{})",
+        "McpTool 接口要求实现 New() mcp.Tool 与 Handle()",
+        "NewMCPServer 启动时一次性 AddTool 全部注册工具"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "代理而非内嵌",
+      "items": [
+        "MCP 工具不直接调 Service 层",
+        "统一经 http_client 以带 token 的 HTTP 请求打主服务",
+        "复用主服务既有 JWT+Casbin 鉴权与 RBAC"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "独立进程托管",
+      "items": [
+        "standalone_manager 在页面触发时 go build 并 exec cmd/mcp",
+        "PID/日志/配置写入 .tmp/mcp/managed-process.json",
+        "健康检查 /health，启动等待 20s，停止等待 8s"
+      ]
+    }
+  ]
+}

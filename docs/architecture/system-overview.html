@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>gin-vue-admin 系统架构总览 · gin-vue-admin 架构文档</title>
+<style>
+  :root {
+    --bg: #f5f7fa; --card: #ffffff; --ink: #1c2733; --ink-2: #5a6b7c;
+    --line: #e3e8ee; --accent: #1f5f8b; --accent-soft: #e8f1f8;
+    --code-bg: #f0f3f6; --quote: #eef4f9; --code-ink: #0f1a24;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 32px 24px 64px; }
+  nav.topnav {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
+    font-size: 13px; color: var(--ink-2);
+  }
+  nav.topnav a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  nav.topnav a:hover { text-decoration: underline; }
+  nav.topnav .crumb {
+    background: var(--card); border: 1px solid var(--line); border-radius: 999px;
+    padding: 3px 12px; font-size: 12px; font-weight: 600; color: var(--ink-2);
+  }
+  article.doc {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 36px 44px;
+  }
+  article.doc h1 { font-size: 27px; line-height: 1.4; letter-spacing: -0.01em; padding-bottom: 14px; border-bottom: 1px solid var(--line); margin-bottom: 26px; }
+  article.doc h2 { font-size: 20px; margin: 36px 0 14px; padding-bottom: 8px; border-bottom: 1px solid #eef1f5; }
+  article.doc h3 { font-size: 16.5px; margin: 26px 0 10px; }
+  article.doc h4 { font-size: 15px; margin: 20px 0 8px; }
+  article.doc p { margin: 12px 0; }
+  article.doc ul, article.doc ol { margin: 12px 0; padding-left: 26px; }
+  article.doc li { margin: 5px 0; }
+  article.doc a { color: var(--accent); text-decoration: none; }
+  article.doc a:hover { text-decoration: underline; }
+  article.doc table { border-collapse: collapse; width: 100%; margin: 18px 0; font-size: 14px; display: block; overflow-x: auto; }
+  article.doc th { background: #f0f4f8; text-align: left; padding: 9px 13px; border: 1px solid var(--line); font-weight: 600; white-space: nowrap; }
+  article.doc td { padding: 9px 13px; border: 1px solid var(--line); vertical-align: top; }
+  article.doc tr:nth-child(even) td { background: #fafbfc; }
+  article.doc code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+  article.doc pre { background: var(--code-ink); color: #e6edf3; padding: 16px 18px; border-radius: 8px; overflow-x: auto; margin: 16px 0; line-height: 1.6; }
+  article.doc pre code { background: none; color: inherit; padding: 0; }
+  article.doc blockquote { border-left: 4px solid #b9cddd; background: var(--quote); margin: 16px 0; padding: 10px 16px; color: var(--ink-2); border-radius: 0 8px 8px 0; }
+  article.doc blockquote p { margin: 4px 0; }
+  article.doc img { max-width: 100%; border-radius: 8px; border: 1px solid var(--line); }
+  article.doc hr { border: none; border-top: 1px solid var(--line); margin: 28px 0; }
+  a.diagram-link {
+    display: inline-block; margin: 4px 0;
+    background: var(--accent-soft); border: 1px solid #cfe0ee; color: var(--accent);
+    border-radius: 8px; padding: 7px 16px; font-size: 13.5px; font-weight: 600;
+    text-decoration: none !important; transition: background 0.15s, border-color 0.15s;
+  }
+  a.diagram-link:hover { background: #dbeaf5; border-color: var(--accent); }
+  a.diagram-link::before { content: "打开交互式图："; font-weight: 400; }
+  footer.doc-foot { margin-top: 24px; font-size: 12.5px; color: var(--ink-2); text-align: center; }
+  @media (max-width: 640px) {
+    .wrap { padding: 20px 12px 40px; }
+    article.doc { padding: 24px 18px; }
+    article.doc h1 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="topnav">
+    <a href="index.html">← gin-vue-admin 架构文档</a>
+    
+  </nav>
+  <article class="doc">
+<h1 id="gin-vue-admin">gin-vue-admin 系统架构总览</h1>
+<blockquote>
+<p>基于 gin-vue-admin 源码（<code>github.com/flipped-aurora/gin-vue-admin/server</code>，Go 1.24.0，v2.9.2）深度分析产出。
+全仓 412 个 Go 文件 / 约 4.6 万行代码，前端 Vue 3 + Vite + Pinia + Element Plus。
+所有图表由 archify 渲染为自包含交互式 HTML（showcase 档，0 校验错误）。</p>
+</blockquote>
+<h2 id="1">1. 项目概述</h2>
+<p>gin-vue-admin 是一个基于 Vue 与 Gin 开发的全栈前后端分离开发基础平台，集成 JWT 鉴权、动态路由、动态菜单、Casbin 鉴权、表单生成器、代码生成器、插件体系与 MCP（Model Context Protocol）AI 集成能力，为快速搭建中小型后台管理系统提供一整套开箱即用的架构底座。</p>
+<h3 id="11">1.1 代码规模</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>数值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Go 文件总数</td>
+<td>412</td>
+<td>不含第三方依赖</td>
+</tr>
+<tr>
+<td>Go 代码行数</td>
+<td>46,013</td>
+<td>实测 <code>find -name "*.go"</code> 汇总</td>
+</tr>
+<tr>
+<td>后端分层</td>
+<td>Router → API → Service → Model</td>
+<td><code>server/</code> 下 api/v1、router、service、model 分 system / example 两域</td>
+</tr>
+<tr>
+<td>前端结构</td>
+<td>Vue 3 + Vite + Pinia + Element Plus</td>
+<td><code>web/src/</code> 下 api、pinia、router、view、utils、plugin 等</td>
+</tr>
+</tbody>
+</table>
+<h3 id="12-go">1.2 后端目录分布（Go 文件数）</h3>
+<table>
+<thead>
+<tr>
+<th>目录</th>
+<th>文件数</th>
+<th>职责</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>server/model</code></td>
+<td>69</td>
+<td>持久化模型与请求/响应模型（system / example / common）</td>
+</tr>
+<tr>
+<td><code>server/utils</code></td>
+<td>67</td>
+<td>工具：jwt、claims、casbin、upload、autocode、ast、timer、verify 等</td>
+</tr>
+<tr>
+<td><code>server/plugin</code></td>
+<td>49</td>
+<td>插件：announcement、email、auto、plugin-tool</td>
+</tr>
+<tr>
+<td><code>server/service</code></td>
+<td>48</td>
+<td>业务逻辑（system / example）</td>
+</tr>
+<tr>
+<td><code>server/api/v1</code></td>
+<td>35</td>
+<td>HTTP 处理器（参数绑定、校验、响应）</td>
+</tr>
+<tr>
+<td><code>server/router</code></td>
+<td>28</td>
+<td>路由注册与中间件挂载</td>
+</tr>
+<tr>
+<td><code>server/initialize</code></td>
+<td>26</td>
+<td>初始化：GORM 多库、Redis、Mongo、定时器、路由、插件、建表</td>
+</tr>
+<tr>
+<td><code>server/mcp</code></td>
+<td>26</td>
+<td>MCP 服务器与工具（api_creator、menu_creator、codegen 等）</td>
+</tr>
+<tr>
+<td><code>server/config</code></td>
+<td>27</td>
+<td>配置结构定义（jwt、redis、db、oss、mcp、auto_code 等）</td>
+</tr>
+<tr>
+<td>其余（core/global/middleware/source/task/cmd）</td>
+<td>41</td>
+<td>启动、全局、中间件、初始化数据、定时任务、命令</td>
+</tr>
+</tbody>
+</table>
+<h2 id="2">2. 功能总览</h2>
+<table>
+<thead>
+<tr>
+<th>领域</th>
+<th>功能模块</th>
+<th>核心代码路径</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>认证与授权</td>
+<td>JWT 鉴权、Casbin RBAC、多点登录、API Token</td>
+<td><code>server/middleware/jwt.go</code>、<code>server/middleware/casbin_rbac.go</code>、<code>server/service/system/sys_casbin.go</code></td>
+</tr>
+<tr>
+<td>用户与权限</td>
+<td>用户、角色、菜单、API、按钮权限管理</td>
+<td><code>server/api/v1/system/sys_user.go</code>、<code>server/api/v1/system/sys_authority.go</code>、<code>server/api/v1/system/sys_menu.go</code></td>
+</tr>
+<tr>
+<td>动态路由/菜单</td>
+<td>按角色动态下发菜单与路由</td>
+<td><code>server/service/system/sys_base_menu.go</code>、前端 <code>web/src/permission.js</code></td>
+</tr>
+<tr>
+<td>系统管理</td>
+<td>字典、参数、操作日志、登录日志、系统信息、版本、导出模板</td>
+<td><code>server/api/v1/system/sys_dictionary.go</code>、<code>sys_params.go</code>、<code>sys_operation_record.go</code> 等</td>
+</tr>
+<tr>
+<td>代码生成器</td>
+<td>模板/包/插件代码生成、多数据库 SQL 生成、SSE、AI 工作流</td>
+<td><code>server/api/v1/system/sys_auto_code*.go</code>、<code>server/service/system/auto_code_llm.go</code>、<code>server/utils/ast/</code></td>
+</tr>
+<tr>
+<td>文件存储</td>
+<td>多云对象存储上传下载、分片上传、断点续传</td>
+<td><code>server/utils/upload/</code>、<code>server/api/v1/example/exa_file_upload_download.go</code></td>
+</tr>
+<tr>
+<td>插件体系</td>
+<td>announcement（公告）、email（邮件）、auto（自动化）、插件框架</td>
+<td><code>server/plugin/</code>、<code>server/initialize/plugin*.go</code></td>
+</tr>
+<tr>
+<td>MCP 集成</td>
+<td>MCP Streamable HTTP 服务，API/菜单/字典/代码生成工具</td>
+<td><code>server/mcp/</code></td>
+</tr>
+<tr>
+<td>定时任务</td>
+<td>数据库表清理等定时任务</td>
+<td><code>server/task/clearTable.go</code>、<code>server/initialize/timer.go</code></td>
+</tr>
+<tr>
+<td>基础设施</td>
+<td>配置（Viper）、日志（Zap）、多数据库（GORM）、Swagger</td>
+<td><code>server/core/</code>、<code>server/config/</code>、<code>server/initialize/gorm*.go</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="3">3. 解决的问题</h2>
+<table>
+<thead>
+<tr>
+<th>用户痛点</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>后台系统重复开发成本高</td>
+<td>提供全栈脚手架：鉴权、权限、菜单、代码生成一应俱全，专注业务开发</td>
+</tr>
+<tr>
+<td>权限模型复杂、难以落地</td>
+<td>JWT 无状态鉴权 + Casbin RBAC，API/菜单/按钮三级权限，权限策略持久化于数据库</td>
+</tr>
+<tr>
+<td>前后端协作契约不统一</td>
+<td>统一响应结构 <code>{code, data, msg}</code> 与分页结构 <code>{page, pageSize, total, list}</code></td>
+</tr>
+<tr>
+<td>不同角色菜单不同、需动态配置</td>
+<td>动态路由/动态菜单：菜单随角色下发，前端按权限注册路由</td>
+</tr>
+<tr>
+<td>重复 CRUD 开发耗时</td>
+<td>代码生成器一键生成前后端基础代码，并支持 AI 工作流与插件化模板</td>
+</tr>
+<tr>
+<td>文件存储厂商锁定</td>
+<td>统一 <code>utils/upload</code> 接口抽象，适配七牛/阿里/腾讯/AWS/MinIO/华为 OBS/Cloudflare R2 等</td>
+</tr>
+<tr>
+<td>多项目多环境配置管理困难</td>
+<td>Viper 配置中心 + 多环境配置文件 + 数据库多库支持（DBList）</td>
+</tr>
+<tr>
+<td>AI 编辑器难以操作平台</td>
+<td>内置 MCP 服务器，AI 可直接调用 API/菜单/字典/代码生成等工具</td>
+</tr>
+</tbody>
+</table>
+<h2 id="4">4. 系统边界</h2>
+<h3 id="41">4.1 上边界（用户 / 第三方接入）</h3>
+<ul>
+<li>浏览器用户通过 HTTPS 访问 Vue3 前端（<code>web/</code>），前端经 REST 调用后端（携带 <code>x-token</code>）。</li>
+<li>AI 编辑器作为 MCP 客户端，通过 MCP Streamable HTTP 协议接入 <code>server/mcp</code> 工具。</li>
+<li>Swagger UI（<code>/swagger/*</code>）为开发者提供在线 API 文档。</li>
+</ul>
+<h3 id="42">4.2 下边界（基础设施，不在本仓库源码内）</h3>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>用途</th>
+<th>标注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MySQL / PostgreSQL / SQLServer / Oracle / SQLite</td>
+<td>GORM 关系数据库（支持多库）</td>
+<td>外部系统/第三方组件，不在本仓库源码内</td>
+</tr>
+<tr>
+<td>Redis</td>
+<td>JWT 黑名单、多点登录、缓存</td>
+<td>外部系统/第三方组件，不在本仓库源码内</td>
+</tr>
+<tr>
+<td>MongoDB（qmgo）</td>
+<td>可选文档存储</td>
+<td>外部系统/第三方组件，不在本仓库源码内</td>
+</tr>
+<tr>
+<td>七牛/阿里/腾讯/AWS S3/MinIO/华为 OBS/Cloudflare R2</td>
+<td>文件对象存储</td>
+<td>外部系统/第三方组件，不在本仓库源码内</td>
+</tr>
+</tbody>
+</table>
+<h3 id="43">4.3 内边界（本仓库实现）</h3>
+<ul>
+<li><code>server/</code>：Gin 后端（路由、API、Service、Model、中间件、初始化、插件、MCP、任务）。</li>
+<li><code>web/</code>：Vue3 前端（页面、路由、状态、接口封装、工具、插件）。</li>
+<li><code>deploy/</code>：Docker / Compose 等部署资产。</li>
+<li><code>aiDoc/</code>：AI 协作文档层（关系、模块、示例、记忆）。</li>
+</ul>
+<h3 id="44">4.4 侧边界（扩展方式）</h3>
+<ul>
+<li>后端插件：<code>server/plugin/&lt;name&gt;/</code>；前端插件：<code>web/src/plugin/&lt;name&gt;/</code>，保持前后端对称结构。</li>
+<li>业务模块按 <code>Router → API → Service → Model</code> 分层扩展，<code>enter.go</code> 作为分组注册入口。</li>
+<li>新存储/新能力通过 <code>utils/</code> 适配层与 <code>config/</code> 配置扩展。</li>
+</ul>
+<h3 id="45-out-of-scope">4.5 不做什么（Out-of-Scope）</h3>
+<ul>
+<li>不内置业务领域功能（CRM/ERP 等），提供的是底座与示例。</li>
+<li>不包含 Kubernetes 编排、服务网格等平台级能力（<code>deploy/</code> 仅提供 Docker 部署资产）。</li>
+<li>不提供独立的消息队列中间件，异步能力通过定时任务与插件机制承载。</li>
+</ul>
+<h2 id="5">5. 系统架构图说明</h2>
+<p><a class="diagram-link" href="system-architecture.html" target="_blank" rel="noopener">系统架构图</a></p>
+<p>系统架构遵循"前端 → 网关/中间件 → 业务域 → 存储"的横向分层：</p>
+<ol>
+<li><strong>接入层</strong>：浏览器（Vue3 SPA）与 AI 编辑器（MCP 客户端）为两大外部入口；<code>gva-web</code> 承担动态路由、状态管理与接口封装。</li>
+<li><strong>网关/服务层</strong>：<code>gin-api</code>（Gin Engine + 中间件链：Recovery、JWT Auth、CasbinHandler、Operation 等）统一鉴权与权限校验；<code>mcp-server</code> 以 Streamable HTTP 暴露工具注册表，工具通过 HTTP 转发执行业务 API。</li>
+<li><strong>业务域</strong>：<code>system-domain</code>（系统业务域 api/service/model）为核心；<code>codegen</code>（代码生成器 + AST）与 <code>plugin-runtime</code>（插件体系）作为扩展侧，由 <code>gin-api</code> 按请求分发。</li>
+<li><strong>存储层</strong>：关系数据库（GORM 多库）承载业务与权限数据，Redis 承载缓存与 JWT 黑名单，MongoDB 为可选文档存储，对象存储承载文件（外部组件，不在本仓库源码内）。</li>
+</ol>
+<p>后端平台整体位于 <code>server/</code> 区域边界内，保持 <code>Router → API → Service → Model</code> 的单向依赖。</p>
+<h2 id="6">6. 核心时序图说明</h2>
+<p><a class="diagram-link" href="system-auth-sequence.html" target="_blank" rel="noopener">登录与鉴权时序</a></p>
+<p>时序图分为两个阶段：</p>
+<ul>
+<li><strong>阶段一「登录签发」</strong>：用户提交账号密码 → <code>POST /base/login</code> → Service 查询用户并校验密码 →（启用多点登录时）写入 Redis 会话管理 → 签发 JWT 返回前端，前端保存 token。</li>
+<li><strong>阶段二「鉴权请求」</strong>：前端携带 <code>x-token</code> 访问业务接口 → <code>middleware/JWTAuth</code> 校验 token 与 JWT 黑名单（Redis）→ <code>middleware/CasbinHandler</code> 通过 GORM Adapter 读取策略做 RBAC 校验 → 通过后进入业务处理并返回统一 JSON。</li>
+</ul>
+<h2 id="7">7. 系统数据流图说明</h2>
+<p><a class="diagram-link" href="system-dataflow.html" target="_blank" rel="noopener">系统数据流图</a></p>
+<p>数据流按「来源 → 接入 → 处理 → 存储 → 消费」五阶段组织：</p>
+<ol>
+<li><strong>来源</strong>：浏览器（REST 请求）与 AI 编辑器（MCP 调用）。</li>
+<li><strong>接入</strong>：Gin API（JWT/Casbin 中间件网关）与 MCP 服务（工具执行经 HTTP 转发业务 API）。</li>
+<li><strong>处理</strong>：系统业务域（Router→API→Service→Model）处理主数据；代码生成器接收生成请求。</li>
+<li><strong>存储</strong>：业务数据 CRUD 落关系库；缓存/黑名单落 Redis；文件对象上传下载走对象存储。</li>
+<li><strong>消费</strong>：关系库查询结果以统一 JSON 返回前端页面渲染。</li>
+</ol>
+<p>主请求路径保持 <code>浏览器 → Gin API → 系统业务域 → 关系库 → 前端页面</code> 的直线链路；AI 调用路径独立于主路径，通过 MCP 服务接入。</p>
+<h2 id="8">8. 核心代码映射</h2>
+<table>
+<thead>
+<tr>
+<th>能力</th>
+<th>代码路径</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>启动流程</td>
+<td><code>server/main.go</code> → <code>core/server.go</code>（<code>initializeSystem</code> → <code>RunServer</code>）</td>
+</tr>
+<tr>
+<td>路由注册</td>
+<td><code>server/initialize/router.go</code>（PublicGroup / PrivateGroup + 插件安装）</td>
+</tr>
+<tr>
+<td>中间件链</td>
+<td><code>server/middleware/</code>（jwt.go、casbin_rbac.go、operation.go、error.go 等）</td>
+</tr>
+<tr>
+<td>全局状态</td>
+<td><code>server/global/global.go</code>（GVA_DB、GVA_REDIS、GVA_CONFIG、GVA_MCP_SERVER 等）</td>
+</tr>
+<tr>
+<td>初始化数据</td>
+<td><code>server/source/system/</code>（菜单、API、角色、字典等种子数据）</td>
+</tr>
+<tr>
+<td>前端入口</td>
+<td><code>web/src/main.js</code>、<code>web/src/permission.js</code>（路由守卫）、<code>web/src/pinia/modules/</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="_1">覆盖范围与说明</h2>
+<ul>
+<li>系统级图表全部以 archify showcase 档校验通过并渲染成功（0 错误）。</li>
+<li>子系统级分析文档位于 <code>docs/architecture/</code> 各分组目录（auth / admin / codegen / storage / extension / mcp / ops / example）。</li>
+<li>本文件中的外部组件（数据库、缓存、对象存储、@Variant Form、mcp-go、cron、gopsutil 等）均为"不在本仓库源码内"的第三方依赖。</li>
+</ul>
+  </article>
+  <footer class="doc-foot">gin-vue-admin 架构文档 · 渲染文档</footer>
+</div>
+</body>
+</html>

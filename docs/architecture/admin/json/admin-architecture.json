@@ -1,0 +1,229 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "gin-vue-admin 系统管理子系统架构",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "viewBox": [1400, 820],
+    "views": [
+      {
+        "id": "main",
+        "label": "核心请求链路",
+        "focus": ["frontend", "router", "api", "service", "model", "db"],
+        "note": "前端请求经路由、中间件、API、Service、Model 到达数据库"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "frontend",
+      "type": "frontend",
+      "label": "前端管理页面",
+      "sublabel": "Vue 3 + Element Plus",
+      "pos": [40, 360],
+      "size": [150, 70]
+    },
+    {
+      "id": "router",
+      "type": "backend",
+      "label": "Gin 路由层",
+      "sublabel": "router/system",
+      "pos": [280, 360],
+      "size": [130, 70],
+      "tag": "路由注册"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "API 层",
+      "sublabel": "api/v1/system",
+      "pos": [500, 360],
+      "size": [120, 70],
+      "tag": "参数绑定与校验"
+    },
+    {
+      "id": "service",
+      "type": "backend",
+      "label": "Service 层",
+      "sublabel": "service/system",
+      "pos": [700, 360],
+      "size": [120, 70],
+      "tag": "业务逻辑"
+    },
+    {
+      "id": "model",
+      "type": "backend",
+      "label": "Model 层",
+      "sublabel": "model/system",
+      "pos": [900, 360],
+      "size": [120, 70],
+      "tag": "数据结构"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "数据库",
+      "sublabel": "GORM / MySQL 等",
+      "pos": [1100, 360],
+      "size": [130, 70]
+    },
+    {
+      "id": "jwt",
+      "type": "security",
+      "label": "JWT 鉴权中间件",
+      "sublabel": "middleware/jwt.go",
+      "pos": [260, 520],
+      "size": [140, 55]
+    },
+    {
+      "id": "op-log",
+      "type": "backend",
+      "label": "操作记录中间件",
+      "sublabel": "middleware/operation.go",
+      "pos": [440, 520],
+      "size": [140, 55]
+    },
+    {
+      "id": "gopsutil",
+      "type": "external",
+      "label": "gopsutil",
+      "sublabel": "服务器指标采集",
+      "pos": [700, 170],
+      "size": [130, 55]
+    },
+    {
+      "id": "viper",
+      "type": "external",
+      "label": "Viper 配置",
+      "sublabel": "config.yaml 读写",
+      "pos": [900, 170],
+      "size": [130, 55]
+    },
+    {
+      "id": "initdb",
+      "type": "backend",
+      "label": "数据库初始化",
+      "sublabel": "sys_initdb + source/system",
+      "pos": [1100, 170],
+      "size": [140, 55]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Gin 中间件链",
+      "wraps": ["jwt", "op-log", "router"]
+    },
+    {
+      "kind": "region",
+      "label": "后端分层（Router → API → Service → Model）",
+      "wraps": ["router", "api", "service", "model"]
+    }
+  ],
+  "connections": [
+    {
+      "id": "fe-router",
+      "from": "frontend",
+      "to": "router",
+      "label": "HTTP 请求",
+      "variant": "emphasis"
+    },
+    {
+      "id": "router-jwt",
+      "from": "router",
+      "to": "jwt",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "鉴权",
+      "variant": "security",
+      "labelDy": 20
+    },
+    {
+      "id": "router-oplog",
+      "from": "router",
+      "to": "op-log",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "写操作记录",
+      "variant": "dashed",
+      "via": [[345, 475], [510, 475]]
+    },
+    {
+      "id": "router-api",
+      "from": "router",
+      "to": "api",
+      "label": "分发",
+      "variant": "emphasis"
+    },
+    {
+      "id": "api-service",
+      "from": "api",
+      "to": "service",
+      "label": "调用",
+      "variant": "emphasis"
+    },
+    {
+      "id": "service-model",
+      "from": "service",
+      "to": "model",
+      "label": "ORM",
+      "variant": "default"
+    },
+    {
+      "id": "model-db",
+      "from": "model",
+      "to": "db",
+      "label": "SQL",
+      "variant": "emphasis"
+    },
+    {
+      "id": "service-gopsutil",
+      "from": "service",
+      "to": "gopsutil",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "label": "采集 OS/CPU/内存/磁盘",
+      "variant": "dashed"
+    },
+    {
+      "id": "model-viper",
+      "from": "model",
+      "to": "viper",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "label": "配置读写",
+      "variant": "dashed"
+    },
+    {
+      "id": "initdb-db",
+      "from": "initdb",
+      "to": "db",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "建表 + 种子数据",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "核心能力",
+      "items": [
+        "用户/字典/参数/日志 CRUD",
+        "操作日志自动记录中间件",
+        "Panic 自动落库",
+        "多数据库初始化"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "分层约束",
+      "items": [
+        "Router → API → Service → Model",
+        "Service 不依赖 gin.Context",
+        "统一响应 {code,data,msg}"
+      ]
+    }
+  ]
+}

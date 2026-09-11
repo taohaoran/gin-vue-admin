@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>gin-vue-admin 系统管理（admin）子系统 · gin-vue-admin 架构文档</title>
+<style>
+  :root {
+    --bg: #f5f7fa; --card: #ffffff; --ink: #1c2733; --ink-2: #5a6b7c;
+    --line: #e3e8ee; --accent: #1f5f8b; --accent-soft: #e8f1f8;
+    --code-bg: #f0f3f6; --quote: #eef4f9; --code-ink: #0f1a24;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 32px 24px 64px; }
+  nav.topnav {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
+    font-size: 13px; color: var(--ink-2);
+  }
+  nav.topnav a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  nav.topnav a:hover { text-decoration: underline; }
+  nav.topnav .crumb {
+    background: var(--card); border: 1px solid var(--line); border-radius: 999px;
+    padding: 3px 12px; font-size: 12px; font-weight: 600; color: var(--ink-2);
+  }
+  article.doc {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 36px 44px;
+  }
+  article.doc h1 { font-size: 27px; line-height: 1.4; letter-spacing: -0.01em; padding-bottom: 14px; border-bottom: 1px solid var(--line); margin-bottom: 26px; }
+  article.doc h2 { font-size: 20px; margin: 36px 0 14px; padding-bottom: 8px; border-bottom: 1px solid #eef1f5; }
+  article.doc h3 { font-size: 16.5px; margin: 26px 0 10px; }
+  article.doc h4 { font-size: 15px; margin: 20px 0 8px; }
+  article.doc p { margin: 12px 0; }
+  article.doc ul, article.doc ol { margin: 12px 0; padding-left: 26px; }
+  article.doc li { margin: 5px 0; }
+  article.doc a { color: var(--accent); text-decoration: none; }
+  article.doc a:hover { text-decoration: underline; }
+  article.doc table { border-collapse: collapse; width: 100%; margin: 18px 0; font-size: 14px; display: block; overflow-x: auto; }
+  article.doc th { background: #f0f4f8; text-align: left; padding: 9px 13px; border: 1px solid var(--line); font-weight: 600; white-space: nowrap; }
+  article.doc td { padding: 9px 13px; border: 1px solid var(--line); vertical-align: top; }
+  article.doc tr:nth-child(even) td { background: #fafbfc; }
+  article.doc code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+  article.doc pre { background: var(--code-ink); color: #e6edf3; padding: 16px 18px; border-radius: 8px; overflow-x: auto; margin: 16px 0; line-height: 1.6; }
+  article.doc pre code { background: none; color: inherit; padding: 0; }
+  article.doc blockquote { border-left: 4px solid #b9cddd; background: var(--quote); margin: 16px 0; padding: 10px 16px; color: var(--ink-2); border-radius: 0 8px 8px 0; }
+  article.doc blockquote p { margin: 4px 0; }
+  article.doc img { max-width: 100%; border-radius: 8px; border: 1px solid var(--line); }
+  article.doc hr { border: none; border-top: 1px solid var(--line); margin: 28px 0; }
+  a.diagram-link {
+    display: inline-block; margin: 4px 0;
+    background: var(--accent-soft); border: 1px solid #cfe0ee; color: var(--accent);
+    border-radius: 8px; padding: 7px 16px; font-size: 13.5px; font-weight: 600;
+    text-decoration: none !important; transition: background 0.15s, border-color 0.15s;
+  }
+  a.diagram-link:hover { background: #dbeaf5; border-color: var(--accent); }
+  a.diagram-link::before { content: "打开交互式图："; font-weight: 400; }
+  footer.doc-foot { margin-top: 24px; font-size: 12.5px; color: var(--ink-2); text-align: center; }
+  @media (max-width: 640px) {
+    .wrap { padding: 20px 12px 40px; }
+    article.doc { padding: 24px 18px; }
+    article.doc h1 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="topnav">
+    <a href="../index.html">← gin-vue-admin 架构文档</a>
+    <span class="crumb">系统管理</span>
+  </nav>
+  <article class="doc">
+<h1 id="gin-vue-admin-admin">gin-vue-admin 系统管理（admin）子系统</h1>
+<blockquote>
+<p>本文档基于 gin-vue-admin v2.9.2 源码分析，覆盖系统管理域的核心能力与边界。</p>
+</blockquote>
+<h2 id="1">1. 概述</h2>
+<p>系统管理（admin）子系统是 gin-vue-admin 后端 <code>server/</code> 下 <code>system</code> 域的核心管理模块，负责用户、字典、参数、日志、系统配置、版本管理、导出模板与数据库初始化等平台级基础能力。后端遵循 Router → API → Service → Model 四层分层架构，通过 <code>enter.go</code> 完成分组注册与组合；Service 层不依赖 <code>gin.Context</code>，统一响应 <code>{code, data, msg}</code>，分页响应 <code>{page, pageSize, total, list}</code>。</p>
+<p>核心代码路径：</p>
+<ul>
+<li>路由注册：<code>server/router/system/</code>（<code>enter.go</code> 组合各子路由）</li>
+<li>API 入口：<code>server/api/v1/system/</code>（<code>enter.go</code> 组合各 API，持 Service 句柄）</li>
+<li>业务逻辑：<code>server/service/system/</code>（<code>enter.go</code> 组合各 Service）</li>
+<li>数据模型：<code>server/model/system/</code>（含 <code>request/</code>、<code>response/</code> 子目录）</li>
+<li>中间件：<code>server/middleware/operation.go</code>、<code>server/middleware/error.go</code></li>
+<li>初始化数据：<code>server/source/system/</code>（用户、菜单、字典、权限等种子数据）</li>
+</ul>
+<h2 id="2">2. 功能清单</h2>
+<table>
+<thead>
+<tr>
+<th>功能</th>
+<th>说明</th>
+<th>源码路径</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>用户注册与登录</td>
+<td>用户名唯一性校验、Bcrypt 密码加密、JWT 签发、默认路由绑定</td>
+<td><code>server/service/system/sys_user.go</code>、<code>server/api/v1/system/sys_user.go</code>、<code>server/model/system/sys_user.go</code></td>
+</tr>
+<tr>
+<td>用户 CRUD 与冻结</td>
+<td>用户增删改查、分页搜索、密码修改、启用/冻结切换、多角色关联</td>
+<td><code>server/service/system/sys_user.go</code>、<code>server/api/v1/system/sys_user.go</code></td>
+</tr>
+<tr>
+<td>字典管理</td>
+<td>字典主表 CRUD、type 唯一性校验、级联删除字典详情</td>
+<td><code>server/service/system/sys_dictionary.go</code>、<code>server/api/v1/system/sys_dictionary.go</code>、<code>server/model/system/sys_dictionary.go</code></td>
+</tr>
+<tr>
+<td>字典详情管理</td>
+<td>字典项明细 CRUD、按字典 ID 关联查询</td>
+<td><code>server/service/system/sys_dictionary_detail.go</code>、<code>server/api/v1/system/sys_dictionary_detail.go</code>、<code>server/model/system/sys_dictionary_detail.go</code></td>
+</tr>
+<tr>
+<td>参数配置管理</td>
+<td>系统参数键值对 CRUD、按名称模糊搜索、时间范围过滤</td>
+<td><code>server/service/system/sys_params.go</code>、<code>server/api/v1/system/sys_params.go</code>、<code>server/model/system/sys_params.go</code></td>
+</tr>
+<tr>
+<td>操作日志记录</td>
+<td>中间件自动记录请求 IP/方法/路径/Body/响应/延迟/错误，分页查询与批量删除</td>
+<td><code>server/middleware/operation.go</code>、<code>server/service/system/sys_operation_record.go</code>、<code>server/api/v1/system/sys_operation_record.go</code>、<code>server/model/system/sys_operation_record.go</code></td>
+</tr>
+<tr>
+<td>登录日志</td>
+<td>登录成功/失败记录、按用户名模糊搜索、按状态过滤、分页查询与删除</td>
+<td><code>server/service/system/sys_login_log.go</code>、<code>server/api/v1/system/sys_login_log.go</code>、<code>server/model/system/sys_login_log.go</code></td>
+</tr>
+<tr>
+<td>系统信息监控</td>
+<td>通过 gopsutil 采集 OS/CPU/内存/磁盘信息，前端可视化展示</td>
+<td><code>server/service/system/sys_system.go</code>、<code>server/api/v1/system/sys_system.go</code>、<code>server/model/system/sys_system.go</code>、<code>server/utils/server.go</code></td>
+</tr>
+<tr>
+<td>系统配置读写</td>
+<td>读取 <code>global.GVA_CONFIG</code>，通过 Viper 动态写入并持久化配置文件</td>
+<td><code>server/service/system/sys_system.go</code>、<code>server/api/v1/system/sys_system.go</code></td>
+</tr>
+<tr>
+<td>版本管理</td>
+<td>版本记录 CRUD、菜单/API/字典数据的导入导出（事务递归创建）</td>
+<td><code>server/service/system/sys_version.go</code>、<code>server/api/v1/system/sys_version.go</code>、<code>server/model/system/sys_version.go</code></td>
+</tr>
+<tr>
+<td>错误日志</td>
+<td>Panic 自动捕获并落库、错误日志 CRUD、处理状态跟踪（未处理/处理中/处理完成）</td>
+<td><code>server/middleware/error.go</code>、<code>server/service/system/sys_error.go</code>、<code>server/api/v1/system/sys_error.go</code>、<code>server/model/system/sys_error.go</code></td>
+</tr>
+<tr>
+<td>导出模板</td>
+<td>Excel 导出模板配置（表名、SQL、条件、关联表）、基于 excelize 渲染导出</td>
+<td><code>server/service/system/sys_export_template.go</code>、<code>server/api/v1/system/sys_export_template.go</code>、<code>server/model/system/sys_export_template.go</code>、<code>server/config/excel.go</code></td>
+</tr>
+<tr>
+<td>数据库初始化</td>
+<td>多数据库适配（MySQL/PostgreSQL/SQLServer/SQLite）、子初始化器注册排序、自动建表与种子数据写入</td>
+<td><code>server/service/system/sys_initdb.go</code>、<code>server/service/system/sys_initdb_mysql.go</code>、<code>server/service/system/sys_initdb_pgsql.go</code>、<code>server/service/system/sys_initdb_mssql.go</code>、<code>server/service/system/sys_initdb_sqlite.go</code>、<code>server/api/v1/system/sys_initdb.go</code>、<code>server/source/system/</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="3">3. 解决的问题</h2>
+<table>
+<thead>
+<tr>
+<th>用户痛点</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>后台管理系统需要一套开箱即用的用户/权限/日志底座</td>
+<td>内置用户、角色、字典、参数、操作日志、登录日志等完整 CRUD，启动即有可运行的管理后台</td>
+</tr>
+<tr>
+<td>多数据库部署需求</td>
+<td>初始化层抽象 <code>TypedDBInitHandler</code>，按 MySQL/PostgreSQL/SQLServer/SQLite 分别实现建库与建表，<code>server/source/system/</code> 提供统一种子数据</td>
+</tr>
+<tr>
+<td>接口调用过程缺乏审计</td>
+<td><code>OperationRecord()</code> 中间件拦截非 GET 请求，自动记录请求体/响应/延迟/错误信息，支持文件上传 Body 截断保护</td>
+</tr>
+<tr>
+<td>线上 Panic 难以定位</td>
+<td><code>GinRecovery</code> 中间件 recover panic 后自动将错误来源/堆栈写入 <code>sys_error</code> 表，支持前端跟踪处理状态</td>
+</tr>
+<tr>
+<td>服务器运行状态不可见</td>
+<td>封装 gopsutil 采集 OS/CPU/内存/磁盘指标，API 直接返回结构化 JSON</td>
+</tr>
+<tr>
+<td>Excel 导出需求分散</td>
+<td>导出模板系统将表名、SQL、查询条件、关联表抽象为可配置模板，基于 excelize 统一渲染</td>
+</tr>
+<tr>
+<td>配置需运行时调整</td>
+<td>通过 Viper 实现配置热读取与持久化写入，无需重启服务</td>
+</tr>
+<tr>
+<td>多环境数据迁移</td>
+<td>版本管理模块支持菜单/API/字典数据的导出与事务化导入，递归重建菜单树</td>
+</tr>
+</tbody>
+</table>
+<h2 id="4">4. 系统边界</h2>
+<h3 id="in-scope">In-Scope（本仓库实现）</h3>
+<ul>
+<li>用户、字典、字典详情、参数、操作日志、登录日志、错误日志、版本管理、导出模板、数据库初始化等全部后端业务逻辑</li>
+<li>操作日志中间件（请求 Body 读取、响应体捕获、延迟计算、记录落库）</li>
+<li>Panic 恢复中间件（错误落库）</li>
+<li>系统信息采集（gopsutil 封装）</li>
+<li>配置读写（Viper 封装）</li>
+<li>种子数据（用户、菜单、权限、字典、API 白名单等）</li>
+<li>前端管理页面（<code>web/src/view/superAdmin/</code> 下用户管理、字典、参数、日志等页面）</li>
+</ul>
+<h3 id="out-of-scope">Out-of-Scope（外部系统/第三方组件，不在本仓库源码内）</h3>
+<ul>
+<li><strong>数据库</strong>：MySQL / PostgreSQL / SQLServer / Oracle / SQLite（通过 GORM 驱动连接，数据库服务本身不在本仓库源码内）</li>
+<li><strong>Redis</strong>：缓存/黑名单存储（第三方组件，不在本仓库源码内）</li>
+<li><strong>MongoDB</strong>：qmgo 驱动（第三方组件，不在本仓库源码内）</li>
+<li><strong>gopsutil</strong>：服务器指标采集库（第三方组件，不在本仓库源码内）</li>
+<li><strong>Viper</strong>：配置管理库（第三方组件，不在本仓库源码内）</li>
+<li><strong>Bcrypt</strong>：密码哈希（golang.org/x/crypto，第三方组件，不在本仓库源码内）</li>
+<li><strong>JWT</strong>：令牌签发与校验（github.com/golang-jwt，第三方组件，不在本仓库源码内）</li>
+<li><strong>excelize</strong>：Excel 文件生成（第三方组件，不在本仓库源码内）</li>
+<li><strong>Zap</strong>：结构化日志（第三方组件，不在本仓库源码内）</li>
+</ul>
+<h2 id="5">5. 架构图</h2>
+<p><a class="diagram-link" href="admin-architecture.html" target="_blank" rel="noopener">系统管理子系统架构图</a></p>
+<p>上图展示 admin 子系统的分层架构：前端管理页面通过 HTTP 请求到达 Gin 路由层，路由层挂载 JWT 鉴权与操作记录中间件后分发到 API 层；API 层调用 Service 层完成业务逻辑，Service 层通过 GORM 操作数据库；系统信息服务通过 gopsutil 采集宿主机指标；数据库初始化模块在启动期自动建表并写入种子数据。</p>
+<h2 id="6">6. 时序图</h2>
+<p><a class="diagram-link" href="admin-sequence.html" target="_blank" rel="noopener">操作日志记录时序图</a></p>
+<p>上图展示一次带操作日志记录的写请求生命周期：请求进入 OperationRecord 中间件后先读取并缓存请求 Body，构造操作记录对象，包装 ResponseWriter，再放行到业务处理；业务完成后计算延迟、捕获错误信息，最终将完整记录写入数据库。GET 请求不经过操作日志中间件（路由注册时仅对 POST/PUT/DELETE 挂载）。</p>
+  </article>
+  <footer class="doc-foot">gin-vue-admin 架构文档 · 渲染文档</footer>
+</div>
+</body>
+</html>

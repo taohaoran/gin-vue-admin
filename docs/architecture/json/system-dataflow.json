@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "gin-vue-admin 系统数据流",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "viewBox": [1080, 720],
+    "animation": "trace",
+    "views": [
+      { "id": "request-path", "label": "请求主路径", "focus": ["browser", "gin-api", "system-domain", "db-mysql", "web-ui"], "note": "前端请求经中间件网关进入业务域并持久化。" },
+      { "id": "ai-path", "label": "AI 调用路径", "focus": ["ai-editor", "mcp-server", "gin-api", "codegen"], "note": "AI 编辑器通过 MCP 服务执行平台工具。" },
+      { "id": "storage", "label": "存储边界", "focus": ["system-domain", "db-mysql", "redis", "oss"], "note": "关系库、缓存与对象存储的落盘路径。" }
+    ]
+  },
+  "stages": [
+    { "label": "来源" },
+    { "label": "接入" },
+    { "label": "处理" },
+    { "label": "存储" },
+    { "label": "消费" }
+  ],
+  "nodes": [
+    { "id": "browser", "type": "frontend", "label": "浏览器", "sublabel": "用户操作", "stage": 0, "row": 0, "tag": "REST" },
+    { "id": "ai-editor", "type": "external", "label": "AI 编辑器", "sublabel": "MCP 客户端", "stage": 0, "row": 1, "tag": "MCP" },
+    { "id": "gin-api", "type": "backend", "label": "Gin API", "sublabel": "中间件网关", "stage": 1, "row": 0, "tag": "JWT/Casbin" },
+    { "id": "mcp-server", "type": "backend", "label": "MCP 服务", "sublabel": "Streamable HTTP", "stage": 1, "row": 1, "tag": "工具注册表" },
+    { "id": "system-domain", "type": "backend", "label": "系统业务域", "sublabel": "api/service/model", "stage": 2, "row": 0, "tag": "Router→API→Service→Model" },
+    { "id": "codegen", "type": "backend", "label": "代码生成器", "sublabel": "auto_code + AST", "stage": 2, "row": 2, "tag": "模板引擎" },
+    { "id": "db-mysql", "type": "database", "label": "关系数据库", "sublabel": "GORM 多库", "stage": 3, "row": 0, "tag": "业务/权限数据" },
+    { "id": "redis", "type": "database", "label": "Redis", "sublabel": "缓存/黑名单", "stage": 3, "row": 2, "tag": "JWT/会话" },
+    { "id": "oss", "type": "cloud", "label": "对象存储", "sublabel": "多云适配", "stage": 3, "row": 3, "tag": "文件" },
+    { "id": "web-ui", "type": "frontend", "label": "前端页面", "sublabel": "数据渲染", "stage": 4, "row": 0, "tag": "视图" }
+  ],
+  "flows": [
+    { "id": "f1", "from": "browser", "to": "gin-api", "label": "业务请求", "classification": "REST {code,data,msg}", "variant": "emphasis", "route": "straight", "labelAt": [208, 210] },
+    { "id": "f2", "from": "ai-editor", "to": "mcp-server", "label": "工具调用", "classification": "MCP 协议", "variant": "emphasis", "route": "straight" },
+    { "id": "f3", "from": "mcp-server", "to": "gin-api", "label": "工具执行", "classification": "HTTP 转发", "variant": "dashed", "fromSide": "top", "toSide": "bottom", "labelAt": [315, 314] },
+    { "id": "f4", "from": "gin-api", "to": "system-domain", "label": "路由分发", "classification": "api/v1/system", "variant": "default", "route": "straight" },
+    { "id": "f5", "from": "gin-api", "to": "codegen", "label": "生成请求", "classification": "auto_code", "variant": "dashed", "fromSide": "top", "toSide": "left", "via": [[315, 90], [466, 90], [466, 385], [474, 385]] },
+    { "id": "f6", "from": "system-domain", "to": "db-mysql", "label": "业务数据 CRUD", "classification": "GORM", "variant": "emphasis", "route": "straight", "labelDy": -40 },
+    { "id": "f7", "from": "system-domain", "to": "redis", "label": "缓存/黑名单", "classification": "JWT/会话", "variant": "default", "fromSide": "right", "toSide": "left", "via": [[637, 157], [637, 385], [689, 385]], "labelDx": -40 },
+    { "id": "f8", "from": "system-domain", "to": "oss", "label": "文件对象", "classification": "上传/下载", "variant": "dashed", "fromSide": "right", "toSide": "left", "via": [[650, 157], [650, 499], [689, 499]], "labelDx": 40 },
+    { "id": "f10", "from": "db-mysql", "to": "web-ui", "label": "查询结果", "classification": "JSON 响应", "variant": "emphasis", "route": "straight" }
+  ],
+  "cards": [
+    { "dot": "emerald", "title": "请求主路径", "items": ["浏览器 → Gin API（JWT/Casbin）→ 业务域 → 关系库", "查询结果以统一 JSON 返回前端渲染", "所有响应保持 {code,data,msg} 契约"] },
+    { "dot": "rose", "title": "AI 调用路径", "items": ["AI 编辑器经 MCP 协议调用平台工具", "MCP 工具通过 HTTP 转发执行业务 API", "代码生成结果供开发者消费"] },
+    { "dot": "orange", "title": "存储边界", "items": ["关系库承载业务与权限数据", "Redis 承载缓存与 JWT 黑名单", "对象存储承载文件（外部组件，不在本仓库源码内）"] }
+  ]
+}

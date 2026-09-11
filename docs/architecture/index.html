@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>gin-vue-admin 架构文档</title>
+<style>
+  :root {
+    --bg: #f5f7fa; --card: #ffffff; --ink: #1c2733; --ink-2: #5a6b7c;
+    --line: #e3e8ee; --accent: #1f5f8b; --accent-soft: #e8f1f8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 40px 24px 64px; }
+  header.hero {
+    background: linear-gradient(135deg, #1f5f8b 0%, #2c7fb8 100%);
+    color: #fff; border-radius: 14px; padding: 40px 44px; margin-bottom: 28px;
+  }
+  header.hero h1 { font-size: 28px; letter-spacing: -0.01em; margin-bottom: 8px; }
+  header.hero p { font-size: 14.5px; opacity: 0.92; max-width: 640px; }
+  section.block {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 24px 28px; margin-bottom: 18px;
+  }
+  section.block h2 { font-size: 17px; margin-bottom: 6px; padding-left: 10px; border-left: 4px solid var(--accent); }
+  section.block > p.desc { font-size: 13px; color: var(--ink-2); margin: 6px 0 14px 10px; }
+  ul.links { list-style: none; }
+  ul.links li { display: inline-block; margin: 0 10px 10px 0; }
+  ul.links a {
+    display: inline-block; background: var(--accent-soft); border: 1px solid #cfe0ee;
+    color: var(--accent); border-radius: 8px; padding: 7px 16px; font-size: 13.5px; font-weight: 600;
+    text-decoration: none; transition: background 0.15s, border-color 0.15s;
+  }
+  ul.links a:hover { background: #dbeaf5; border-color: var(--accent); }
+  ul.links a.doc { background: #fff; border-color: var(--line); color: var(--ink); font-weight: 500; }
+  ul.links a.doc:hover { border-color: var(--accent); color: var(--accent); }
+  footer { margin-top: 28px; font-size: 12.5px; color: var(--ink-2); text-align: center; }
+  @media (max-width: 640px) {
+    .wrap { padding: 20px 12px 40px; }
+    header.hero { padding: 26px 22px; }
+    header.hero h1 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <h1>gin-vue-admin 系统架构文档</h1>
+    <p>基于 gin-vue-admin 源码（Go 1.24.0 · v2.9.2）深度分析产出，覆盖系统级与 8 个子系统的功能、问题域、系统边界、架构图、时序图与数据流图。全仓 412 个 Go 文件 / 约 4.6 万行代码，前端 Vue 3 + Vite + Pinia + Element Plus。</p>
+  </header>
+
+  <section class="block">
+    <h2>系统级</h2>
+    <p class="desc">功能总览、解决的问题、系统边界与核心代码映射，以及系统级交互图。</p>
+    <ul class="links">
+      <li><a class="doc" href="system-overview.html">系统架构总览（文档）</a></li>
+      <li><a href="system-architecture.html">系统架构图</a></li>
+      <li><a href="system-dataflow.html">系统数据流图</a></li>
+      <li><a href="system-auth-sequence.html">登录与鉴权时序图</a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <h2>认证与授权（auth）</h2>
+    <p class="desc">JWT + Casbin RBAC + API Token</p>
+    <ul class="links">
+      <li><a class="doc" href="auth/auth.html">文档</a></li>
+      <li><a href="auth/auth-architecture.html">架构图</a></li>
+      <li><a href="auth/auth-sequence.html">登录签发与请求鉴权时序</a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <h2>系统管理域（admin）</h2>
+    <p class="desc">用户 / 字典 / 参数 / 日志 / 系统信息 / 版本 / 初始化</p>
+    <ul class="links">
+      <li><a class="doc" href="admin/admin.html">文档</a></li>
+      <li><a href="admin/admin-architecture.html">架构图</a></li>
+      <li><a href="admin/admin-sequence.html">系统管理时序</a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <h2>代码生成与 AI 工作流（codegen）</h2>
+    <p class="desc">代码生成器与 AI 工作流</p>
+    <ul class="links">
+      <li><a class="doc" href="codegen/codegen.html">文档</a></li>
+      <li><a href="codegen/codegen-architecture.html">架构图</a></li>
+      <li><a href="codegen/codegen-sequence.html">代码生成时序</a></li>
+      <li><a href="codegen/codegen-dataflow.html">代码生成数据流</a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <h2>文件存储与上传（storage）</h2>
+    <p class="desc">多云 OSS + 断点续传</p>
+    <ul class="links">
+      <li><a class="doc" href="storage/storage.html">文档</a></li>
+      <li><a href="storage/storage-architecture.html">架构图</a></li>
+      <li><a href="storage/storage-sequence.html">文件上传时序</a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <h2>插件体系（extension）</h2>
+    <p class="desc">announcement / email / auto</p>
+    <ul class="links">
+      <li><a class="doc" href="extension/extension.html">文档</a></li>
+      <li><a href="extension/extension-architecture.html">架构图</a></li>
+      <li><a href="extension/extension-sequence.html">插件注册时序</a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <h2>MCP 服务器与客户端（mcp）</h2>
+    <p class="desc">MCP 服务与 AI 集成</p>
+    <ul class="links">
+      <li><a class="doc" href="mcp/mcp.html">文档</a></li>
+      <li><a href="mcp/mcp-architecture.html">架构图</a></li>
+      <li><a href="mcp/mcp-sequence.html">MCP 调用时序</a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <h2>定时任务与运行运维（ops）</h2>
+    <p class="desc">定时任务与运行时中间件</p>
+    <ul class="links">
+      <li><a class="doc" href="ops/ops.html">文档</a></li>
+      <li><a href="ops/ops-architecture.html">架构图</a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <h2>示例业务模块（example）</h2>
+    <p class="desc">示例业务模块</p>
+    <ul class="links">
+      <li><a class="doc" href="example/example.html">文档</a></li>
+      <li><a href="example/example-architecture.html">架构图</a></li>
+      <li><a href="example/example-sequence.html">示例业务时序</a></li>
+    </ul>
+  </section>
+
+  <footer>gin-vue-admin 架构文档 · 由 archify 代码分析产出并部署至 GitHub Pages</footer>
+</div>
+</body>
+</html>

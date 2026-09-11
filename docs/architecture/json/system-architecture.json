@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "gin-vue-admin 系统架构",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "viewBox": [1080, 740],
+    "views": [
+      { "id": "main", "label": "主请求路径", "focus": ["browser", "gva-web", "gin-api", "system-domain", "db-mysql"], "note": "从前端请求到业务处理与关系库持久化的主链路。" },
+      { "id": "ai-integration", "label": "AI 集成路径", "focus": ["ai-editor", "mcp-server", "gin-api", "codegen"], "note": "AI 编辑器通过 MCP Streamable HTTP 调用平台工具。" },
+      { "id": "extension", "label": "扩展与生成", "focus": ["gin-api", "codegen", "plugin-runtime", "db-mysql"], "note": "代码生成器与插件体系的请求分发。" }
+    ]
+  },
+  "components": [
+    { "id": "ai-editor", "type": "external", "label": "AI 编辑器", "sublabel": "MCP 客户端", "pos": [30, 100], "size": [120, 60] },
+    { "id": "mcp-server", "type": "backend", "label": "MCP 服务", "sublabel": "Streamable HTTP", "pos": [440, 100], "size": [120, 60], "tag": "工具注册表" },
+    { "id": "browser", "type": "external", "label": "用户", "sublabel": "浏览器", "pos": [30, 300], "size": [120, 60] },
+    { "id": "gva-web", "type": "frontend", "label": "Vue3 前端", "sublabel": "Vite + Pinia", "pos": [240, 300], "size": [130, 60], "tag": "动态路由" },
+    { "id": "gin-api", "type": "backend", "label": "Gin API 服务", "sublabel": "中间件链", "pos": [470, 300], "size": [140, 60], "tag": "JWT/Casbin" },
+    { "id": "codegen", "type": "backend", "label": "代码生成器", "sublabel": "auto_code + AST", "pos": [700, 100], "size": [150, 60] },
+    { "id": "system-domain", "type": "backend", "label": "系统业务域", "sublabel": "api/service/model", "pos": [700, 300], "size": [150, 60] },
+    { "id": "plugin-runtime", "type": "backend", "label": "插件体系", "sublabel": "announcement/email/auto", "pos": [700, 560], "size": [150, 60] },
+    { "id": "db-mysql", "type": "database", "label": "关系数据库", "sublabel": "MySQL/PG/...", "pos": [940, 300], "size": [130, 60], "tag": "GORM" },
+    { "id": "redis", "type": "database", "label": "Redis", "sublabel": "缓存/黑名单", "pos": [940, 480], "size": [130, 60] },
+    { "id": "oss", "type": "cloud", "label": "对象存储", "sublabel": "七牛/阿里/AWS 等", "pos": [240, 560], "size": [130, 60] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "GVA 后端平台（server/）", "wraps": ["mcp-server", "gin-api", "codegen", "system-domain", "plugin-runtime"] }
+  ],
+  "connections": [
+    { "id": "browser-web", "from": "browser", "to": "gva-web", "label": "HTTPS" },
+    { "id": "web-api", "from": "gva-web", "to": "gin-api", "label": "REST {code,data,msg}", "variant": "emphasis", "labelDy": 68 },
+    { "id": "ai-mcp", "from": "ai-editor", "to": "mcp-server", "label": "MCP 协议", "variant": "emphasis" },
+    { "id": "mcp-api", "from": "mcp-server", "to": "gin-api", "label": "工具执行调用", "variant": "dashed", "fromSide": "bottom", "toSide": "top" },
+    { "id": "api-domain", "from": "gin-api", "to": "system-domain", "label": "路由分发" },
+    { "id": "api-codegen", "from": "gin-api", "to": "codegen", "label": "生成请求", "variant": "dashed", "fromSide": "right", "toSide": "top", "via": [[690, 330], [690, 90], [775, 90]] },
+    { "id": "api-plugin", "from": "gin-api", "to": "plugin-runtime", "label": "插件请求", "variant": "dashed", "fromSide": "bottom", "toSide": "bottom", "via": [[540, 690], [775, 690]] },
+    { "id": "domain-db", "from": "system-domain", "to": "db-mysql", "label": "GORM CRUD", "variant": "emphasis" },
+    { "id": "domain-redis", "from": "system-domain", "to": "redis", "label": "缓存/黑名单", "fromSide": "bottom", "toSide": "top", "via": [[775, 450], [1005, 450]] },
+    { "id": "codegen-db", "from": "codegen", "to": "db-mysql", "label": "模板/生成历史", "variant": "dashed", "fromSide": "right", "toSide": "top", "via": [[1005, 130]] }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "前端与 AI", "items": ["Vue3 + Vite + Pinia + Element Plus", "动态路由与动态菜单由权限接口下发", "MCP 工具注册表驱动 AI 编辑器集成"] },
+    { "dot": "emerald", "title": "后端分层", "items": ["Router → API → Service → Model", "JWT 鉴权 + Casbin RBAC 中间件链", "统一响应 {code,data,msg} 与分页结构"] },
+    { "dot": "orange", "title": "存储边界", "items": ["GORM 多数据库（MySQL/PG/SQLServer/Oracle/SQLite）", "Redis 缓存与 JWT 黑名单", "七牛/阿里/腾讯/AWS/MinIO 等对象存储（不在本仓库源码内）"] }
+  ]
+}
